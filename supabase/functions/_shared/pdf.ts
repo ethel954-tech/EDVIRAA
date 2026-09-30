@@ -47,21 +47,18 @@ function normalizePunctuation(text: string): string {
 }
 
 export async function extractTextFromPdf(bytes: Uint8Array): Promise<string> {
-  // Dynamic import keeps pdfjs out of any main bundle; under Deno the
-  // npm: specifier resolves it, under Node the test runner does.
-  // The legacy build is preferred: pdfjs itself warns that the modern build
+  // Dynamic import keeps pdfjs out of any main bundle. The specifier MUST be
+  // a pinned npm: URL — bare specifiers ("pdfjs-dist") are not resolvable by
+  // the Supabase edge deploy-time bundler (deploy 500s with
+  // "Relative import path not prefixed with / or ./ or ../"), and unpinned
+  // npm: URLs would risk breaking on a new major. Pin matches the web app
+  // (web/package.json: pdfjs-dist ^6.3.289).
+  // The legacy build is required: pdfjs itself warns that the modern build
   // breaks under Node's crypto (hashOriginal.toHex), while the legacy build
   // works in Node and Deno alike.
-  let pdfjs: PdfJsModule;
-  try {
-    pdfjs = (await import(
-      /* webpackIgnore: true */ "pdfjs-dist/legacy/build/pdf.mjs"
-    )) as unknown as PdfJsModule;
-  } catch {
-    pdfjs = (await import(
-      /* webpackIgnore: true */ "pdfjs-dist"
-    )) as unknown as PdfJsModule;
-  }
+  const pdfjs = (await import(
+    /* webpackIgnore: true */ "npm:pdfjs-dist@6.3.289/legacy/build/pdf.mjs"
+  )) as unknown as PdfJsModule;
 
   // No DOM worker in edge/Node runtimes — pdfjs falls back to its
   // same-thread fake worker automatically when no workerSrc is set.
