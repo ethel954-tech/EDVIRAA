@@ -71,6 +71,13 @@ export default function MobileTutorScreen() {
   const [isRecording, setIsRecording] = useState(false);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
 
+  // Server-side conversation id: sent back with every message so the tutor
+  // resumes this conversation (history + grounding) instead of starting a
+  // new one per message. Kept in a ref too so the send closure always sees
+  // the latest value without re-creating handlers.
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const activeConversationIdRef = useRef<string | null>(null);
+
   // Profile & Subjects
   const [profile, setProfile] = useState<any>(null);
   const [subject, setSubject] = useState<Subject | null>(null);
@@ -106,6 +113,11 @@ export default function MobileTutorScreen() {
     setSubjectModalOpen(false);
     if (next.id === subject?.id) return;
     setSubject(next);
+    // The conversation is scoped to one subject — starting a new subject
+    // means a new conversation (subjectId can't smuggle a conversation out
+    // of its grounding scope server-side either).
+    activeConversationIdRef.current = null;
+    setActiveConversationId(null);
     try {
       await setActiveSubject(next.id);
     } catch {
@@ -140,7 +152,11 @@ export default function MobileTutorScreen() {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ message: text, subjectId: subject?.id }),
+          body: JSON.stringify({
+            message: text,
+            subjectId: subject?.id ?? undefined,
+            conversationId: activeConversationIdRef.current ?? undefined,
+          }),
         }
       );
 
@@ -161,6 +177,13 @@ export default function MobileTutorScreen() {
             : m
         )
       );
+
+      // Remember the conversation so the next message resumes it. When the
+      // subject changes, drop it — the new subject starts a fresh scope.
+      if (typeof payload.conversationId === 'string' && payload.conversationId) {
+        activeConversationIdRef.current = payload.conversationId;
+        setActiveConversationId(payload.conversationId);
+      }
     } catch (e: any) {
       setMessages((prev) =>
         prev.map((m) =>
