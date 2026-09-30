@@ -1,0 +1,8 @@
+{
+  // Deno language server only for the Supabase Edge Functions folder.
+  // The web (Next.js) and mobile folders keep using their normal TS setups.
+  "deno.enablePaths": ["supabase/functions"],
+  "deno.config": "supabase/functions/deno.json",
+  "deno.lint": true,
+  "deno.unstable": true
+}

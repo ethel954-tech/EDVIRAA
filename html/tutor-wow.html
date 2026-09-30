@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI Tutor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--teal:#0E6E55;--teal-dark:#0A5544;--teal-pale:#E1F1EC;--violet:#6C4BC8;--violet-pale:#EDE7FA;
+--amber:#E8A33D;--amber-pale:#FCEFDA;--bg:#F5FAF8;--surface:#FFFFFF;--ink:#14231F;--ink-soft:#5B6E68;--border:#DCEAE4;
+padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1815;--surface:#182420;--ink:#EAF3EF;--ink-soft:#93A6A0;--border:#25332E;--teal-pale:#123A2E;--violet-pale:#241B42;}}
+:root[data-theme="dark"]{--bg:#0F1815;--surface:#182420;--ink:#EAF3EF;--ink-soft:#93A6A0;--border:#25332E;--teal-pale:#123A2E;--violet-pale:#241B42;}
+*{box-sizing:border-box;}html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;}
+.shell{display:flex;height:100vh;}
+.rail{width:76px;background:var(--teal-dark);display:flex;flex-direction:column;align-items:center;padding:20px 0;gap:26px;flex-shrink:0;}
+.rail .logo{width:34px;height:34px;border-radius:9px;background:var(--amber);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:700;color:#3A2A0F;font-size:16px;}
+.rail nav a{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#BFE3D6;margin-top:22px;}
+.rail nav a.active{background:rgba(255,255,255,.12);color:#fff;}
+.rail nav svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;}
+.chatwrap{flex:1;display:flex;flex-direction:column;max-width:760px;margin:0 auto;padding:26px 24px;height:100%;}
+.chead h2{font-family:'Fraunces',serif;font-weight:600;font-size:22px;margin:0;}
+.chead p{margin:2px 0 18px;color:var(--ink-soft);font-size:13.5px;}
+.thread{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding-right:4px;}
+.msg{max-width:74%;padding:13px 16px;border-radius:16px;font-size:14.5px;line-height:1.55;}
+.msg.a{background:var(--teal-pale);color:var(--ink);border-bottom-left-radius:4px;align-self:flex-start;}
+.msg.u{background:var(--violet-pale);color:var(--ink);border-bottom-right-radius:4px;align-self:flex-end;}
+.chips{display:flex;gap:8px;margin:16px 0 12px;flex-wrap:wrap;}
+.chip{padding:7px 13px;border-radius:999px;font-size:12.5px;font-weight:600;background:var(--surface);border:1px solid var(--border);color:var(--ink-soft);}
+.chip.on{background:var(--teal);color:#fff;border-color:var(--teal);}
+.inputbar{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:8px 8px 8px 18px;}
+.inputbar input{flex:1;border:none;background:none;font-size:14px;font-family:'Inter',sans-serif;color:var(--ink);outline:none;}
+.iconbtn{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:none;cursor:pointer;}
+.iconbtn.mic{background:var(--violet-pale);color:var(--violet);}
+.iconbtn.send{background:var(--teal);color:#fff;}
+.iconbtn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;}
+</style></head>
+<body>
+<div class="shell">
+  <aside class="rail"><div class="logo">S</div>
+    <nav>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/></svg></a>
+      <a class="active" href="#"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H7l-3 3z"/></svg></a>
+      <a href="#"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 2.5-5 6-5s6 2 6 5"/></svg></a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M3 20V10M9 20V4M15 20v-7M21 20V13"/></svg></a>
+    </nav>
+  </aside>
+  <div class="chatwrap">
+    <div class="chead"><h2>Biology 101 · Cell Structure</h2><p>Grounded in your uploaded notes</p></div>
+    <div class="thread">
+      <div class="msg a">Based on your notes, mitochondria generate ATP through respiration. Want a simpler analogy?</div>
+      <div class="msg u">Yes please, like I'm 5</div>
+      <div class="msg a">Think of it as a tiny power plant inside each cell, turning food into energy the cell can use.</div>
+      <div class="msg u">Can you quiz me on this?</div>
+      <div class="msg a">Sure — what's the main job of the mitochondria in a cell?</div>
+    </div>
+    <div class="chips">
+      <div class="chip on">Explain like I'm 5</div>
+      <div class="chip">Debate mode</div>
+      <div class="chip">Explain it back</div>
+      <div class="chip">Make a quiz</div>
+    </div>
+    <div class="inputbar">
+      <input placeholder="Ask about your notes"/>
+      <button class="iconbtn mic"><svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M19 11a7 7 0 0 1-14 0M12 19v3"/></svg></button>
+      <button class="iconbtn send"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    </div>
+  </div>
+</div>
+</body></html>

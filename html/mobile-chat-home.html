@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Home</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--teal:#0E6E55;--teal-dark:#0A5544;--teal-pale:#E1F1EC;--violet:#6C4BC8;--violet-pale:#EDE7FA;
+--amber:#E8A33D;--bg:#0F1815;--surface:#182420;--ink:#EAF3EF;--ink-soft:#93A6A0;--border:#25332E;
+box-sizing:border-box;}
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;overflow:hidden;}
+.screen{max-width:430px;margin:0 auto;height:100vh;position:relative;padding:calc(16px + env(safe-area-inset-top,0px)) 20px calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;}
+.top{display:flex;justify-content:space-between;align-items:center;}
+.icon{width:26px;height:26px;stroke:var(--ink);fill:none;stroke-width:1.8;}
+label.hbtn{cursor:pointer;display:flex;align-items:center;justify-content:center;padding:4px;}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--violet);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;cursor:pointer;}
+.mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:16px;}
+.spark{width:52px;height:52px;color:var(--amber);}
+.mid h1{font-family:'Fraunces',serif;font-weight:600;font-size:28px;margin:0;}
+.subjchip{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;background:var(--surface);border:1px solid var(--border);font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;transition:all 0.2s;}
+.subjchip:hover{border-color:var(--teal);color:var(--ink);}
+.composer{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:14px 16px;}
+.composer input{width:100%;background:none;border:none;color:var(--ink);font-size:15px;font-family:'Inter',sans-serif;outline:none;margin-bottom:12px;}
+.composer input::placeholder{color:var(--ink-soft);}
+.crow{display:flex;align-items:center;justify-content:space-between;}
+.chip{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;background:var(--bg);font-size:12.5px;color:var(--ink-soft);font-weight:600;cursor:pointer;transition:all 0.2s;}
+.chip:hover{background:var(--violet-pale);color:var(--violet);}
+.crow-right{display:flex;gap:8px;}
+.iconbtn{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform 0.15s;}
+.iconbtn:active{transform:scale(0.92);}
+.iconbtn.mic{background:var(--violet-pale);color:var(--violet);}
+.iconbtn.send{background:var(--teal);color:#fff;}
+.iconbtn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;}
+
+#drawerToggle{display:none;}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .25s;z-index:20;}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:82%;max-width:340px;background:var(--bg);z-index:21;
+  transform:translateX(-100%);transition:transform .28s ease;padding:calc(24px + env(safe-area-inset-top,0px)) 22px 20px;display:flex;flex-direction:column;}
+#drawerToggle:checked ~ .overlay{opacity:1;pointer-events:auto;}
+#drawerToggle:checked ~ .drawer{transform:translateX(0);}
+.drawer h2{font-family:'Fraunces',serif;font-size:24px;margin:0 0 22px;}
+.dlink{display:flex;align-items:center;gap:14px;padding:12px 10px;color:var(--ink);text-decoration:none;font-size:15.5px;border-radius:10px;transition:background 0.2s;}
+.dlink:hover{background:var(--surface);}
+.dlink svg{width:20px;height:20px;stroke:var(--ink-soft);fill:none;stroke-width:1.8;}
+.divider{border:none;border-top:1px solid var(--border);margin:10px 0;}
+.recents-label{font-size:12.5px;color:var(--ink-soft);margin:6px 0 4px;}
+.recent{display:flex;align-items:center;gap:10px;padding:10px 6px;font-size:14px;color:var(--ink);cursor:pointer;border-radius:8px;transition:background 0.2s;}
+.recent:hover{background:var(--surface);}
+.recent .rdot{width:7px;height:7px;border-radius:50%;border:1.5px solid var(--ink-soft);flex-shrink:0;}
+.dbottom{margin-top:auto;display:flex;align-items:center;justify-content:space-between;}
+.newchat{background:var(--surface);color:var(--ink);border:1px solid var(--border);padding:11px 18px;border-radius:999px;font-weight:700;font-size:13.5px;display:flex;align-items:center;gap:6px;cursor:pointer;transition:all 0.2s;}
+.newchat:hover{border-color:var(--teal);background:var(--teal-pale);color:var(--teal-dark);}
+</style></head>
+<body>
+<input type="checkbox" id="drawerToggle">
+<div class="screen">
+  <div class="top">
+    <label class="hbtn" for="drawerToggle"><svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></label>
+    <label class="avatar" for="drawerToggle">A</label>
+  </div>
+  <div class="mid">
+    <svg class="spark" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z"/></svg>
+    <h1>Hey, Amara</h1>
+    <div class="subjchip" id="subjChip">📘 Biology 101 <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+  </div>
+  <div class="composer">
+    <input id="promptInput" placeholder="Ask about your notes…"/>
+    <div class="crow">
+      <div class="chip" id="suggestChip">Explain like I'm 5</div>
+      <div class="crow-right">
+        <div class="iconbtn mic" id="micBtn" title="Record Voice"><svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M19 11a7 7 0 0 1-14 0M12 19v3"/></svg></div>
+        <div class="iconbtn send" id="sendBtn" title="Send Question"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<label class="overlay" for="drawerToggle"></label>
+<div class="drawer">
+  <h2>Study Assistant</h2>
+  <a class="dlink" href="#" id="linkChats"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-8.9 8.4 8.5 8.5 0 0 1-4.3-1.2L3 20l1.3-4.8A8.4 8.4 0 1 1 21 11.5z"/></svg>Chats</a>
+  <a class="dlink" href="#" id="linkSubjects"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H7l-3 3z"/></svg>Subjects</a>
+  <a class="dlink" href="#" id="linkRooms"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3 2.5-5 6-5s6 2 6 5M14 20c.3-2 1.7-3.5 4-3.5 2 0 3.5 1 4 2.8"/></svg>Rooms &amp; Classes</a>
+  <a class="dlink" href="#" id="linkProgress"><svg viewBox="0 0 24 24"><path d="M3 20V10M9 20V4M15 20v-7M21 20V13"/></svg>Progress</a>
+  <hr class="divider">
+  <div class="recents-label">Recent chats</div>
+  <div class="recent" data-query="Cell structure questions"><span class="rdot"></span>Cell structure questions</div>
+  <div class="recent" data-query="Osmosis vs diffusion"><span class="rdot"></span>Osmosis vs diffusion</div>
+  <div class="recent" data-query="Photosynthesis recap"><span class="rdot"></span>Photosynthesis recap</div>
+  <div class="dbottom">
+    <label class="avatar" for="drawerToggle">A</label>
+    <div class="newchat" id="newChatBtn">+ New chat</div>
+  </div>
+</div>
+
+<script>
+  const toggle = document.getElementById('drawerToggle');
+  const promptInput = document.getElementById('promptInput');
+  const suggestChip = document.getElementById('suggestChip');
+  const sendBtn = document.getElementById('sendBtn');
+  const micBtn = document.getElementById('micBtn');
+  const newChatBtn = document.getElementById('newChatBtn');
+
+  suggestChip.addEventListener('click', () => {
+    promptInput.value = "Explain the main concepts in my Biology 101 notes like I'm 5";
+    promptInput.focus();
+  });
+
+  sendBtn.addEventListener('click', () => {
+    if (promptInput.value.trim()) {
+      alert("Sending question to AI Tutor:\n\n" + promptInput.value);
+      promptInput.value = "";
+    } else {
+      promptInput.focus();
+    }
+  });
+
+  micBtn.addEventListener('click', () => {
+    alert("Microphone voice recording triggered!");
+  });
+
+  document.querySelectorAll('.recent').forEach(el => {
+    el.addEventListener('click', () => {
+      const q = el.getAttribute('data-query');
+      promptInput.value = "Tell me more about " + q;
+      toggle.checked = false;
+      promptInput.focus();
+    });
+  });
+
+  newChatBtn.addEventListener('click', () => {
+    promptInput.value = "";
+    toggle.checked = false;
+    promptInput.focus();
+  });
+</script>
+</body></html>

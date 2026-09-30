@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#0E6E55; --teal-dark:#0A5544; --teal-pale:#E1F1EC;
+  --violet:#6C4BC8; --violet-pale:#EDE7FA;
+  --amber:#E8A33D; --amber-pale:#FCEFDA;
+  --bg:#F5FAF8; --surface:#FFFFFF; --ink:#14231F; --ink-soft:#5B6E68; --border:#DCEAE4;
+  --radius:14px;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1815; --surface:#182420; --ink:#EAF3EF; --ink-soft:#93A6A0; --border:#25332E;
+    --teal-pale:#123A2E; --violet-pale:#241B42; --amber-pale:#3A2A0F;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1815; --surface:#182420; --ink:#EAF3EF; --ink-soft:#93A6A0; --border:#25332E;
+  --teal-pale:#123A2E; --violet-pale:#241B42; --amber-pale:#3A2A0F;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;}
+a{color:inherit;text-decoration:none;}
+.shell{display:flex;min-height:100vh;}
+/* Sidebar */
+.rail{width:76px;background:var(--teal-dark);display:flex;flex-direction:column;align-items:center;
+  padding:20px 0 calc(20px + env(safe-area-inset-bottom,0px));gap:26px;flex-shrink:0;}
+.rail .logo{width:34px;height:34px;border-radius:9px;background:var(--amber);display:flex;align-items:center;
+  justify-content:center;font-family:'Fraunces',serif;font-weight:700;color:#3A2A0F;font-size:16px;}
+.rail nav{display:flex;flex-direction:column;gap:22px;margin-top:8px;}
+.rail nav a{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  color:#BFE3D6;transition:background .15s,color .15s;}
+.rail nav a.active,.rail nav a:hover{background:rgba(255,255,255,.12);color:#fff;}
+.rail nav svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;}
+/* Main */
+.main{flex:1;padding:34px 40px 60px;max-width:1180px;}
+.topline{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:30px;}
+.topline h1{font-family:'Fraunces',serif;font-weight:600;font-size:30px;margin:0 0 4px;letter-spacing:-.3px;}
+.topline p{margin:0;color:var(--ink-soft);font-size:14.5px;}
+.pills{display:flex;gap:10px;}
+.pill{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;font-size:13.5px;font-weight:600;}
+.pill.amber{background:var(--amber-pale);color:#8A5A0F;}
+.pill.teal{background:var(--teal-pale);color:var(--teal-dark);}
+/* Grid */
+.grid{display:grid;grid-template-columns:1.35fr 1fr;gap:22px;}
+@media (max-width:860px){.grid{grid-template-columns:1fr;}.rail{width:64px;}.main{padding:24px 18px 50px;}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:26px;}
+/* Hero */
+.hero{display:flex;gap:28px;align-items:center;grid-column:1;animation:rise .5s ease both;}
+@keyframes rise{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+.ring{--pct:62;width:132px;height:132px;border-radius:50%;flex-shrink:0;
+  background:conic-gradient(var(--teal) calc(var(--pct)*1%), var(--teal-pale) 0);
+  display:flex;align-items:center;justify-content:center;}
+.ring::before{content:"";position:absolute;}
+.ring .hole{width:100px;height:100px;border-radius:50%;background:var(--surface);display:flex;
+  flex-direction:column;align-items:center;justify-content:center;}
+.ring .hole b{font-size:22px;font-family:'Fraunces',serif;}
+.ring .hole span{font-size:11px;color:var(--ink-soft);}
+.hero-text .eyebrow{font-size:13px;color:var(--ink-soft);margin-bottom:6px;}
+.hero-text h2{font-family:'Fraunces',serif;font-size:26px;font-weight:600;margin:0 0 14px;}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--teal);color:#fff;border:none;
+  padding:11px 20px;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;}
+.btn:hover{background:var(--teal-dark);}
+/* Stat strip */
+.stats{grid-column:1;display:flex;gap:14px;margin-top:2px;}
+.stat{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
+.stat b{display:block;font-family:'Fraunces',serif;font-size:22px;}
+.stat span{font-size:12.5px;color:var(--ink-soft);}
+/* Side column */
+.side{grid-column:2;grid-row:1 / span 3;display:flex;flex-direction:column;gap:20px;}
+.side h3{font-size:15px;margin:0 0 14px;}
+.room{display:flex;align-items:center;gap:12px;padding:12px 0;border-left:3px solid var(--violet);
+  padding-left:14px;margin-bottom:6px;}
+.room:last-child{margin-bottom:0;}
+.room b{display:block;font-size:14px;}
+.room span{font-size:12px;color:var(--ink-soft);}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--teal);margin-left:auto;}
+.weak{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);}
+.weak:last-child{border:none;}
+.weak span{font-size:14px;}
+.weak a{font-size:12.5px;color:var(--violet);font-weight:600;}
+/* Modules list */
+.modules{grid-column:1;}
+.mod{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--border);}
+.mod:last-child{border:none;}
+.mbadge{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:14px;}
+.mbadge.done{background:var(--teal-pale);color:var(--teal-dark);}
+.mbadge.now{background:var(--violet-pale);color:var(--violet);}
+.mbadge.locked{background:var(--border);color:var(--ink-soft);}
+.mod b{font-size:14px;display:block;}
+.mod span{font-size:12px;color:var(--ink-soft);}
+.mod .pct{margin-left:auto;font-size:13px;font-weight:600;color:var(--ink-soft);}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="rail">
+    <div class="logo">S</div>
+    <nav>
+      <a class="active" href="#"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg></a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H7l-3 3z"/></svg></a>
+      <a href="#"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3 2.5-5 6-5s6 2 6 5M14 20c.3-2 1.7-3.5 4-3.5 2 0 3.5 1 4 2.8"/></svg></a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M3 20V10M9 20V4M15 20v-7M21 20V13"/></svg></a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topline">
+      <div>
+        <h1>Good afternoon, Amara</h1>
+        <p>Biology 101 · 3 classes in progress</p>
+      </div>
+      <div class="pills">
+        <div class="pill amber">🔥 6 day streak</div>
+        <div class="pill teal">340 XP this week</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card hero">
+        <div class="ring"><div class="hole"><b>62%</b><span>Module 2</span></div></div>
+        <div class="hero-text">
+          <div class="eyebrow">Biology 101 · Continue your roadmap</div>
+          <h2>Cell Structure</h2>
+          <button class="btn">Continue studying →</button>
+        </div>
+      </div>
+
+      <div class="side card">
+        <h3>Your rooms</h3>
+        <div class="room"><div><b>Chem exam prep</b><span>3 members · live now</span></div><div class="dot"></div></div>
+        <div class="room" style="border-color:var(--teal)"><div><b>Physics group</b><span>5 members</span></div></div>
+        <h3 style="margin-top:22px;">Weak spots</h3>
+        <div class="weak"><span>Cell membrane transport</span><a href="#">Review →</a></div>
+        <div class="weak"><span>Osmosis vs diffusion</span><a href="#">Review →</a></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><b>12</b><span>Sessions this week</span></div>
+        <div class="stat"><b>4</b><span>Badges earned</span></div>
+        <div class="stat"><b>87%</b><span>Quiz accuracy</span></div>
+      </div>
+
+      <div class="card modules">
+        <h3>Biology 101 roadmap</h3>
+        <div class="mod"><div class="mbadge done">✓</div><div><b>Intro to Cells</b><span>Module 1</span></div><div class="pct">100%</div></div>
+        <div class="mod"><div class="mbadge now">●</div><div><b>Cell Structure</b><span>Module 2 · in progress</span></div><div class="pct">62%</div></div>
+        <div class="mod"><div class="mbadge locked">🔒</div><div><b>Membrane Transport</b><span>Module 3</span></div><div class="pct">—</div></div>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

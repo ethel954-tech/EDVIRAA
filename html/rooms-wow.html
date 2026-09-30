@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Study Rooms</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--teal:#0E6E55;--teal-dark:#0A5544;--teal-pale:#E1F1EC;--violet:#6C4BC8;--violet-pale:#EDE7FA;
+--amber:#E8A33D;--bg:#F5FAF8;--surface:#FFFFFF;--ink:#14231F;--ink-soft:#5B6E68;--border:#DCEAE4;
+padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1815;--surface:#182420;--ink:#EAF3EF;--ink-soft:#93A6A0;--border:#25332E;--teal-pale:#123A2E;--violet-pale:#241B42;}}
+:root[data-theme="dark"]{--bg:#0F1815;--surface:#182420;--ink:#EAF3EF;--ink-soft:#93A6A0;--border:#25332E;--teal-pale:#123A2E;--violet-pale:#241B42;}
+*{box-sizing:border-box;}html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;}
+.shell{display:flex;min-height:100vh;}
+.rail{width:76px;background:var(--teal-dark);display:flex;flex-direction:column;align-items:center;padding:20px 0;gap:26px;flex-shrink:0;}
+.rail .logo{width:34px;height:34px;border-radius:9px;background:var(--amber);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:700;color:#3A2A0F;font-size:16px;}
+.rail nav a{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#BFE3D6;margin-top:22px;}
+.rail nav a.active{background:rgba(255,255,255,.12);color:#fff;}
+.rail nav svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;}
+.main{flex:1;padding:34px 40px 60px;max-width:920px;display:grid;grid-template-columns:280px 1fr;gap:26px;}
+@media (max-width:760px){.main{grid-template-columns:1fr;}}
+.list h1{font-family:'Fraunces',serif;font-weight:600;font-size:24px;margin:0 0 18px;}
+.room{display:flex;align-items:center;gap:12px;padding:13px 12px;border-left:3px solid var(--violet);border-radius:0 10px 10px 0;margin-bottom:8px;cursor:pointer;}
+.room.on{background:var(--violet-pale);}
+.room.teach{border-color:var(--teal);}
+.room b{display:block;font-size:14px;}
+.room span{font-size:12px;color:var(--ink-soft);}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--teal);margin-left:auto;}
+.detail{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;display:flex;flex-direction:column;}
+.detail h2{font-family:'Fraunces',serif;font-size:21px;margin:0 0 2px;}
+.detail .sub{font-size:12.5px;color:var(--ink-soft);margin:0 0 18px;}
+.avatars{display:flex;margin-bottom:16px;}
+.av{width:30px;height:30px;border-radius:50%;border:2px solid var(--surface);margin-right:-8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;}
+.quiz{background:var(--teal-pale);border-radius:12px;padding:16px;margin-bottom:14px;}
+.quiz .q{font-size:12px;color:var(--teal-dark);font-weight:600;margin-bottom:8px;}
+.opt{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13.5px;margin-bottom:6px;}
+.opt.right{background:var(--teal);color:#fff;border-color:var(--teal);}
+.msg{max-width:78%;padding:10px 14px;border-radius:14px;font-size:13.5px;margin-bottom:8px;}
+.msg.them{background:var(--bg);border:1px solid var(--border);align-self:flex-start;}
+.msg.me{background:var(--violet-pale);align-self:flex-end;margin-left:auto;}
+</style></head>
+<body>
+<div class="shell">
+  <aside class="rail"><div class="logo">S</div>
+    <nav>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/></svg></a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H7l-3 3z"/></svg></a>
+      <a class="active" href="#"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3 2.5-5 6-5s6 2 6 5M14 20c.3-2 1.7-3.5 4-3.5 2 0 3.5 1 4 2.8"/></svg></a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M3 20V10M9 20V4M15 20v-7M21 20V13"/></svg></a>
+    </nav>
+  </aside>
+  <main class="main">
+    <div class="list">
+      <h1>Rooms</h1>
+      <div class="room on"><div><b>Chem exam prep</b><span>3 members · live</span></div><div class="dot"></div></div>
+      <div class="room"><div><b>Physics group</b><span>5 members</span></div></div>
+      <div class="room teach"><div><b>Bio 101 — Mr. Okafor</b><span>Teacher room · 24 members</span></div></div>
+    </div>
+    <div class="detail">
+      <h2>Chem exam prep</h2>
+      <p class="sub">3 members · live now</p>
+      <div class="avatars">
+        <div class="av" style="background:var(--teal)">A</div>
+        <div class="av" style="background:var(--amber)">J</div>
+        <div class="av" style="background:var(--violet)">D</div>
+      </div>
+      <div class="quiz">
+        <div class="q">Shared quiz · question 3 of 10</div>
+        <div style="font-size:14px;margin-bottom:10px;">What determines an element's reactivity?</div>
+        <div class="opt">Atomic mass</div>
+        <div class="opt right">Valence electrons</div>
+        <div class="opt">Number of protons</div>
+      </div>
+      <div class="msg them">Jordan: I always mix this one up</div>
+      <div class="msg me">You: same, valence electrons though</div>
+    </div>
+  </main>
+</div>
+</body></html>

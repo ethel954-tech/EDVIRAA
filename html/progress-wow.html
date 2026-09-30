@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Progress</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--teal:#0E6E55;--teal-dark:#0A5544;--teal-pale:#E1F1EC;--violet:#6C4BC8;--violet-pale:#EDE7FA;
+--amber:#E8A33D;--bg:#F5FAF8;--surface:#FFFFFF;--ink:#14231F;--ink-soft:#5B6E68;--border:#DCEAE4;
+padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1815;--surface:#182420;--ink:#EAF3EF;--ink-soft:#93A6A0;--border:#25332E;--teal-pale:#123A2E;--violet-pale:#241B42;}}
+:root[data-theme="dark"]{--bg:#0F1815;--surface:#182420;--ink:#EAF3EF;--ink-soft:#93A6A0;--border:#25332E;--teal-pale:#123A2E;--violet-pale:#241B42;}
+*{box-sizing:border-box;}html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;}
+.shell{display:flex;min-height:100vh;}
+.rail{width:76px;background:var(--teal-dark);display:flex;flex-direction:column;align-items:center;padding:20px 0;gap:26px;flex-shrink:0;}
+.rail .logo{width:34px;height:34px;border-radius:9px;background:var(--amber);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:700;color:#3A2A0F;font-size:16px;}
+.rail nav a{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#BFE3D6;margin-top:22px;}
+.rail nav a.active{background:rgba(255,255,255,.12);color:#fff;}
+.rail nav svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;}
+.main{flex:1;padding:34px 40px 60px;max-width:820px;}
+h1{font-family:'Fraunces',serif;font-weight:600;font-size:26px;margin:0 0 22px;}
+.hero{display:flex;gap:32px;align-items:flex-end;margin-bottom:30px;}
+.big b{font-family:'Fraunces',serif;font-size:52px;line-height:1;color:var(--teal-dark);}
+.big span{font-size:13px;color:var(--ink-soft);}
+.miniStats{display:flex;gap:22px;padding-bottom:6px;}
+.miniStats div b{display:block;font-size:18px;font-family:'Fraunces',serif;}
+.miniStats div span{font-size:11.5px;color:var(--ink-soft);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media (max-width:700px){.grid2{grid-template-columns:1fr;}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;}
+.card h3{font-size:14.5px;margin:0 0 14px;}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.cal div{aspect-ratio:1;border-radius:5px;background:var(--border);}
+.cal div.on{background:var(--teal);}
+.cal div.mid{background:var(--teal-pale);}
+.spark{width:100%;height:60px;}
+.weak{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:13.5px;}
+.weak:last-child{border:none;}
+.weak a{color:var(--violet);font-weight:600;font-size:12.5px;}
+</style></head>
+<body>
+<div class="shell">
+  <aside class="rail"><div class="logo">S</div>
+    <nav>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/></svg></a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H7l-3 3z"/></svg></a>
+      <a href="#"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 2.5-5 6-5s6 2 6 5"/></svg></a>
+      <a class="active" href="#"><svg viewBox="0 0 24 24"><path d="M3 20V10M9 20V4M15 20v-7M21 20V13"/></svg></a>
+    </nav>
+  </aside>
+  <main class="main">
+    <h1>Your progress</h1>
+    <div class="hero">
+      <div class="big"><b>74%</b><span>Overall completion</span></div>
+      <div class="miniStats">
+        <div><b>4</b><span>Badges</span></div>
+        <div><b>87%</b><span>Quiz accuracy</span></div>
+        <div><b>6</b><span>Day streak</span></div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Streak calendar</h3>
+        <div class="cal">
+          <div class="on"></div><div class="on"></div><div class="mid"></div><div class="on"></div><div class="on"></div><div></div><div class="on"></div>
+          <div class="mid"></div><div class="on"></div><div class="on"></div><div></div><div class="on"></div><div class="on"></div><div class="on"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>XP trend (7 days)</h3>
+        <svg class="spark" viewBox="0 0 200 60" preserveAspectRatio="none">
+          <polyline points="0,45 30,38 60,40 90,25 120,30 150,15 180,10 200,8" fill="none" stroke="#0E6E55" stroke-width="3"/>
+        </svg>
+      </div>
+    </div>
+    <div class="card" style="margin-top:20px;">
+      <h3>Weak spots</h3>
+      <div class="weak"><span>Cell membrane transport</span><a href="#">Review →</a></div>
+      <div class="weak"><span>Osmosis vs diffusion</span><a href="#">Review →</a></div>
+      <div class="weak"><span>Photosynthesis stages</span><a href="#">Review →</a></div>
+    </div>
+  </main>
+</div>
+</body></html>

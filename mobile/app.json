@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Study Assistant",
+    "slug": "study-assistant-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#F5FAF8"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "This app uses the microphone so you can record voice notes for the AI Tutor."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F5FAF8"
+      },
+      "permissions": ["RECORD_AUDIO"]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone to record voice notes for the AI Tutor."
+        }
+      ]
+    ],
+    "scheme": "studyassistant",
+    "extra": {
+      "supabaseUrl": "https://crblfsmdlawvwsrlrctm.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyYmxmc21kbGF3dndzcmxyY3RtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMjc4NjMsImV4cCI6MjEwNTYwMzg2M30.AhpLplQ53oQqwu9EEtXMmAjOOjuSQA9yi-OKXrABQk0"
+    }
+  }
+}

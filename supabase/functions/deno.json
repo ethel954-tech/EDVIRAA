@@ -1,0 +1,14 @@
+{
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  },
+  "fmt": true,
+  "compilerOptions": {
+    "strict": true
+  },
+  "tasks": {
+    "start": "supabase functions serve"
+  }
+}

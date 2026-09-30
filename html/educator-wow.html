@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Educator Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--violet:#6C4BC8;--violet-dark:#4F359B;--violet-pale:#EDE7FA;--teal:#0E6E55;--teal-pale:#E1F1EC;
+--amber:#E8A33D;--bg:#F5FAF8;--surface:#FFFFFF;--ink:#14231F;--ink-soft:#5B6E68;--border:#DCEAE4;
+padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1815;--surface:#182420;--ink:#EAF3EF;--ink-soft:#93A6A0;--border:#25332E;--teal-pale:#123A2E;--violet-pale:#241B42;}}
+:root[data-theme="dark"]{--bg:#0F1815;--surface:#182420;--ink:#EAF3EF;--ink-soft:#93A6A0;--border:#25332E;--teal-pale:#123A2E;--violet-pale:#241B42;}
+*{box-sizing:border-box;}html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;}
+.shell{display:flex;min-height:100vh;}
+.rail{width:76px;background:var(--violet-dark);display:flex;flex-direction:column;align-items:center;padding:20px 0;gap:26px;flex-shrink:0;}
+.rail .logo{width:34px;height:34px;border-radius:9px;background:var(--amber);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:700;color:#3A2A0F;font-size:16px;}
+.rail nav a{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#D8CCF2;margin-top:22px;}
+.rail nav a.active{background:rgba(255,255,255,.14);color:#fff;}
+.rail nav svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;}
+.main{flex:1;padding:34px 40px 60px;max-width:900px;}
+h1{font-family:'Fraunces',serif;font-weight:600;font-size:26px;margin:0 0 4px;}
+.sub{color:var(--ink-soft);font-size:14px;margin:0 0 26px;}
+.hero{background:var(--violet-pale);border-radius:14px;padding:24px;display:flex;align-items:center;gap:22px;margin-bottom:26px;}
+.hero b{font-family:'Fraunces',serif;font-size:34px;color:var(--violet-dark);}
+.hero .txt h2{font-family:'Fraunces',serif;font-size:19px;margin:0 0 4px;}
+.hero .txt p{margin:0;font-size:13px;color:var(--ink-soft);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media (max-width:700px){.grid2{grid-template-columns:1fr;}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;}
+.card h3{font-size:14.5px;margin:0 0 14px;}
+.room{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:13.5px;}
+.room:last-child{border:none;}
+.room span{color:var(--ink-soft);font-size:12px;}
+.field{margin-bottom:14px;}
+.field label{font-size:12px;color:var(--ink-soft);display:block;margin-bottom:5px;}
+.field input,.field select{width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-size:13.5px;color:var(--ink);font-family:'Inter',sans-serif;}
+.btn{background:var(--violet);color:#fff;border:none;padding:10px 18px;border-radius:9px;font-weight:600;font-size:13.5px;}
+.gap{display:flex;justify-content:space-between;align-items:center;padding:8px 0;font-size:13px;}
+.bar{flex:1;height:6px;background:var(--border);border-radius:6px;margin:0 12px;overflow:hidden;}
+.bar div{height:100%;background:var(--violet);}
+</style></head>
+<body>
+<div class="shell">
+  <aside class="rail"><div class="logo">S</div>
+    <nav>
+      <a class="active" href="#"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></a>
+      <a href="#"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3 2.5-5 6-5s6 2 6 5M14 20c.3-2 1.7-3.5 4-3.5 2 0 3.5 1 4 2.8"/></svg></a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4M12 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/></svg></a>
+    </nav>
+  </aside>
+  <main class="main">
+    <h1>Educator dashboard</h1>
+    <p class="sub">Mr. Okafor · Biology 101</p>
+    <div class="hero">
+      <b>12</b>
+      <div class="txt"><h2>Submissions need grading</h2><p>Chem exam prep · assigned 2 days ago</p></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Your rooms</h3>
+        <div class="room"><span>Bio 101 — main class</span><span>24 members</span></div>
+        <div class="room"><span>Chem exam prep</span><span>18 members</span></div>
+        <div class="room"><span>Weekend review</span><span>9 members</span></div>
+      </div>
+      <div class="card">
+        <h3>Class knowledge gaps</h3>
+        <div class="gap"><span>Membrane transport</span><div class="bar"><div style="width:68%"></div></div><span>68%</span></div>
+        <div class="gap"><span>Cell division</span><div class="bar"><div style="width:41%"></div></div><span>41%</span></div>
+        <div class="gap"><span>Photosynthesis</span><div class="bar"><div style="width:22%"></div></div><span>22%</span></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:20px;">
+      <h3>Build a new exam</h3>
+      <div class="field"><label>Title</label><input placeholder="Midterm — Cell Biology"/></div>
+      <div class="field"><label>Assign to room</label><select><option>Chem exam prep</option><option>Bio 101 — main class</option></select></div>
+      <button class="btn">Create exam</button>
+    </div>
+  </main>
+</div>
+</body></html>

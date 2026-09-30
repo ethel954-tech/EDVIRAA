@@ -1,0 +1,21 @@
+import { Sidebar, type AppRole } from "@/components/layout/sidebar";
+import { ToastHost } from "@/components/ui/toast";
+
+export function AppShell({
+  children,
+  role,
+}: {
+  children: React.ReactNode;
+  role: AppRole;
+}) {
+  return (
+    <div className="flex h-dvh w-full overflow-hidden bg-[var(--bg)]">
+      <Sidebar role={role} />
+      <main className="flex-1 overflow-y-auto">
+        {children}
+      </main>
+      <ToastHost />
+    </div>
+  );
+}
+
