@@ -7,7 +7,7 @@
 // shared API layer generally) calls this before prompting Qwen.
 //
 // Deploy:  supabase functions deploy rag-search
-// Secrets: supabase secrets set DASHSCOPE_API_KEY=sk-...
+// Secrets: supabase secrets set LLM_API_KEY=... LLM_BASE_URL=... LLM_MODEL=...
 // ============================================================================
 
 // @ts-ignore: Deno npm: specifier — resolved by the edge runtime, not tsc.
@@ -56,14 +56,9 @@ Deno.serve(async (req: Request) => {
       },
     );
 
-    const apiKey = Deno.env.get("DASHSCOPE_API_KEY");
-    if (!apiKey) {
-      return json({ error: "DASHSCOPE_API_KEY is not configured" }, 500);
-    }
-
     // Embed the query with the SAME model as the chunks — mixing embedding
     // models silently destroys retrieval quality.
-    const [queryEmbedding] = await embedTexts([query.trim()], { apiKey });
+    const [queryEmbedding] = await embedTexts([query.trim()]);
 
     // RLS-safe RPC: SECURITY DEFINER but pinned to student_id = auth.uid(),
     // scoped to the subject, over 'ready' documents only.
@@ -109,7 +104,7 @@ Deno.serve(async (req: Request) => {
   }
 });
 
-function json(body: unknown, status: number) {
+function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },

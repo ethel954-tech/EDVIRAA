@@ -9,11 +9,11 @@
 //
 // Any failure marks the document 'failed' so the UI stops saying Processing.
 // Deploy:  supabase functions deploy process-document
-// Secrets: supabase secrets set DASHSCOPE_API_KEY=sk-...
+// Secrets: supabase secrets set LLM_API_KEY=... LLM_BASE_URL=... LLM_MODEL=...
 // ============================================================================
 
 // @ts-ignore: Deno npm: specifier — resolved by the edge runtime, not tsc.
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 // @ts-ignore: same as above.
 import { chunkPassages } from "../_shared/chunker.ts";
 // @ts-ignore: same as above.
@@ -37,7 +37,7 @@ Deno.serve(async (req: Request) => {
   }
 
   let documentId: string | undefined;
-  let supabaseAdmin: ReturnType<typeof createClient> | null = null;
+  let supabaseAdmin: SupabaseClient | null = null;
 
   try {
     const { documentId: docId } = (await req.json()) as ProcessRequest;
@@ -100,11 +100,7 @@ Deno.serve(async (req: Request) => {
       throw new Error("No extractable content found in this PDF.");
     }
 
-    const apiKey = Deno.env.get("DASHSCOPE_API_KEY");
-    if (!apiKey) {
-      throw new Error("DASHSCOPE_API_KEY is not configured on the project.");
-    }
-    const embedder = createQwenEmbedder(apiKey);
+    const embedder = createQwenEmbedder();
 
     // Batched embedding (text-embedding-v3 accepts batched input).
     const embeddings = await embedder.embedMany(
@@ -162,7 +158,7 @@ Deno.serve(async (req: Request) => {
   }
 });
 
-function json(body: unknown, status: number) {
+function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -13,7 +13,7 @@
 // caveat) instead of killing the chat.
 //
 // Deploy:  supabase functions deploy tutor-chat
-// Secrets: supabase secrets set DASHSCOPE_API_KEY=sk-...
+// Secrets: supabase secrets set LLM_API_KEY=... LLM_BASE_URL=... LLM_MODEL=...
 // ============================================================================
 
 // @ts-ignore: Deno npm: specifier — resolved by the edge runtime, not tsc.
@@ -82,11 +82,6 @@ Deno.serve(async (req: Request) => {
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader) {
       return json({ error: "Missing Authorization header" }, 401);
-    }
-
-    const dashscopeApiKey = Deno.env.get("DASHSCOPE_API_KEY");
-    if (!dashscopeApiKey) {
-      return json({ error: "Service configuration error" }, 500);
     }
 
     const supabase = createClient(
@@ -170,7 +165,7 @@ Deno.serve(async (req: Request) => {
     let retrievalError: string | null = null;
 
     try {
-      const [queryEmbedding] = await embedTexts([message.trim()], { apiKey: dashscopeApiKey });
+      const [queryEmbedding] = await embedTexts([message.trim()]);
 
       const { data: matches, error } = await supabase.rpc(
         "search_document_chunks",
@@ -262,7 +257,7 @@ function buildTitle(message: string): string {
   return clean.length <= 60 ? clean || "New chat" : `${clean.slice(0, 60)}…`;
 }
 
-function json(body: unknown, status: number) {
+function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },

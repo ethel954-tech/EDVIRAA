@@ -145,11 +145,16 @@ export function createQwenEmbedder() {
 
 /**
  * Non-streaming chat completion — delegates to chat() in llm.ts
- * (single source of truth); options like temperature/maxTokens are forwarded.
+ * (single source of truth); options like temperature/maxTokens/timeoutMs
+ * are forwarded.
  */
 export async function chatCompletion(
   messages: ChatMessage[],
-  opts: { temperature?: number; maxTokens?: number } = {},
+  opts: {
+    temperature?: number;
+    maxTokens?: number;
+    timeoutMs?: number;
+  } = {},
 ): Promise<ChatCompletionResult> {
   return chat(messages, opts);
 }
