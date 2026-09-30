@@ -71,6 +71,7 @@ export function UploadZone({ subjects }: { subjects: SubjectOption[] }) {
       setUploads((prev) => [...prev, { key, name: file.name, percent: 0 }]);
 
       let documentId: string | null = null;
+      let uploaded = false;
 
       try {
         const { data: inserted, error: insertError } = await supabase
@@ -109,10 +110,25 @@ export function UploadZone({ subjects }: { subjects: SubjectOption[] }) {
           .eq("id", documentId);
 
         if (updateError) throw new Error(updateError.message);
+        uploaded = true;
 
-        void supabase.functions.invoke("process-document", {
-          body: { documentId },
-        });
+        // Fire-and-forget, but not failure-and-forget: if the invoke itself
+        // fails (offline, 401, edge down) nothing would flip the row out of
+        // "processing" and the UI would spin forever. Mark it failed so the
+        // user sees the truth and can retry.
+        const { error: invokeError } = await supabase.functions.invoke(
+          "process-document",
+          { body: { documentId } },
+        );
+        if (invokeError) {
+          await supabase
+            .from("documents")
+            .update({ status: "failed" as const })
+            .eq("id", documentId);
+          throw new Error(
+            `Could not start processing: ${invokeError.message}`,
+          );
+        }
 
         setUploads((prev) =>
           prev.map((u) => (u.key === key ? { ...u, done: true } : u)),
@@ -125,7 +141,10 @@ export function UploadZone({ subjects }: { subjects: SubjectOption[] }) {
         setUploads((prev) =>
           prev.map((u) => (u.key === key ? { ...u, error: message } : u)),
         );
-        if (documentId) {
+        // Only clean up the DB row when the upload itself failed. Once the
+        // file is stored, the row (and any "failed" status we just set) is
+        // the user's retry handle — deleting it would orphan the object.
+        if (documentId && !uploaded) {
           void supabase.from("documents").delete().eq("id", documentId);
         }
       }
