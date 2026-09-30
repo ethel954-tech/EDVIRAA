@@ -12,13 +12,15 @@
 // the exam, so this function needs no service role.
 //
 // Deploy:  supabase functions deploy suggest-exam-feedback
-// Secrets: supabase secrets set DASHSCOPE_API_KEY=sk-...
+// Secrets: supabase secrets set LLM_API_KEY=... LLM_BASE_URL=... LLM_MODEL=...
 // ============================================================================
 
 // @ts-ignore: Deno npm: specifier — resolved by the edge runtime, not tsc.
 import { createClient } from "npm:@supabase/supabase-js@2";
 // @ts-ignore: same as above.
 import { chatCompletion, type ChatMessage } from "../_shared/qwen.ts";
+// @ts-ignore: same as above.
+import { DEFAULT_TIMEOUT_MS } from "../_shared/llm.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -113,11 +115,6 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Invalid or expired session" }, 401);
     }
 
-    const apiKey = Deno.env.get("DASHSCOPE_API_KEY");
-    if (!apiKey) {
-      return json({ error: "DASHSCOPE_API_KEY is not configured" }, 500);
-    }
-
     // -------------------------------------------------------------- Attempt
     const { data: attempt, error: attemptErr } = await supabase
       .from("exam_attempts")
@@ -196,14 +193,14 @@ Deno.serve(async (req: Request) => {
     ];
 
     const reply = await chatCompletion(messages, {
-      apiKey,
       temperature: 0.2,
       maxTokens: 700,
+      timeoutMs: DEFAULT_TIMEOUT_MS,
     });
 
     let suggestion: QwenGrade;
     try {
-      suggestion = parseGradeReply(reply.text, maxPoints);
+      suggestion = parseGradeReply(reply.content, maxPoints);
     } catch {
       return json(
         { error: "The model returned an unexpected reply. Try again." },

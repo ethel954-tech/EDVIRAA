@@ -1,6 +1,18 @@
 import { type ChatMessage, type ChatCompletionResult } from "./qwen.ts";
 
-export async function chat(messages: ChatMessage[]): Promise<ChatCompletionResult> {
+/** Default chat-completion timeout: 30s. */
+export const DEFAULT_TIMEOUT_MS = 30_000;
+/** Long generations (structured JSON, large quizzes) need more headroom. */
+export const GENERATION_TIMEOUT_MS = 60_000;
+
+export async function chat(
+  messages: ChatMessage[],
+  {
+    temperature = 0.3,
+    maxTokens = 1500,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+  }: { temperature?: number; maxTokens?: number; timeoutMs?: number } = {},
+): Promise<ChatCompletionResult> {
   const rawBaseUrl = Deno.env.get("LLM_BASE_URL");
   const apiKey = Deno.env.get("LLM_API_KEY");
   const model = Deno.env.get("LLM_MODEL");
@@ -12,9 +24,9 @@ export async function chat(messages: ChatMessage[]): Promise<ChatCompletionResul
   // Trim trailing slash
   const baseUrl = rawBaseUrl.replace(/\/+$/, "");
 
-  // Timeout controller (30s)
+  // Timeout controller (default 30s; callers can raise it for long outputs)
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(`${baseUrl}/chat/completions`, {
@@ -26,8 +38,8 @@ export async function chat(messages: ChatMessage[]): Promise<ChatCompletionResul
       body: JSON.stringify({
         model,
         messages,
-        temperature: 0.3,
-        max_tokens: 1500,
+        temperature,
+        max_tokens: maxTokens,
       }),
       signal: controller.signal,
     });
@@ -39,13 +51,13 @@ export async function chat(messages: ChatMessage[]): Promise<ChatCompletionResul
 
     const json = await response.json();
     const content = json.choices?.[0]?.message?.content;
-    
+
     if (typeof content !== "string" || content.trim() === "") {
       throw new Error("Chat response returned empty content");
     }
 
-    return { 
-      content, 
+    return {
+      content,
       model: json.model ?? model,
       usage: json.usage
     };

@@ -10,13 +10,15 @@
 // The client grades nothing: quiz attempts go through submit_quiz_attempt().
 //
 // Deploy:  supabase functions deploy generate-study-materials
-// Secrets: supabase secrets set DASHSCOPE_API_KEY=sk-...
+// Secrets: supabase secrets set LLM_API_KEY=... LLM_BASE_URL=... LLM_MODEL=...
 // ============================================================================
 
 // @ts-ignore: Deno npm: specifier — resolved by the edge runtime, not tsc.
 import { createClient } from "npm:@supabase/supabase-js@2";
 // @ts-ignore: same as above.
 import { chatCompletion, type ChatMessage } from "../_shared/qwen.ts";
+// @ts-ignore: same as above.
+import { GENERATION_TIMEOUT_MS } from "../_shared/llm.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -119,11 +121,6 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Invalid or expired session" }, 401);
     }
 
-    const apiKey = Deno.env.get("DASHSCOPE_API_KEY");
-    if (!apiKey) {
-      return json({ error: "DASHSCOPE_API_KEY is not configured" }, 500);
-    }
-
     // RLS-scoped select proves ownership of the document.
     const { data: document, error: docError } = await supabase
       .from("documents")
@@ -181,9 +178,9 @@ Deno.serve(async (req: Request) => {
     ];
 
     const completion = await chatCompletion(messages, {
-      apiKey,
       temperature: 0.4,
       maxTokens,
+      timeoutMs: GENERATION_TIMEOUT_MS,
     });
 
     // ------------------------------------------------------------------
