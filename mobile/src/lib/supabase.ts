@@ -12,9 +12,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('❌ Missing Supabase environment variables! Check your .env file.');
 }
 
-// Debug logs (truncated key for security)
+// Debug log (URL only — never log keys, even truncated)
 console.log('🔑 Supabase URL:', supabaseUrl);
-console.log('🔑 Supabase Key starts with:', supabaseAnonKey.substring(0, 15) + '...');
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

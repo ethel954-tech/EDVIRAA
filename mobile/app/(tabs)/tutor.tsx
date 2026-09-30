@@ -421,12 +421,16 @@ export default function MobileTutorScreen() {
             onSubmitEditing={() => handleSend(input)}
           />
           <View style={styles.crowRight}>
-            <TouchableOpacity
-              style={[styles.iconBtnMic, isRecording && styles.iconBtnMicActive]}
-              onPress={toggleRecording}
-            >
-              <Mic size={18} color={isRecording ? colors.danger : colors.violet} />
-            </TouchableOpacity>
+            {/* Mic temporarily hidden: the transcription backend is being
+                migrated off DashScope and is not reachable right now. */}
+            {false && (
+              <TouchableOpacity
+                style={[styles.iconBtnMic, isRecording && styles.iconBtnMicActive]}
+                onPress={toggleRecording}
+              >
+                <Mic size={18} color={isRecording ? colors.danger : colors.violet} />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={[styles.iconBtnSend, !input.trim() && styles.iconBtnSendDisabled]}
               onPress={() => handleSend(input)}
