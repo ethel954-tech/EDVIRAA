@@ -38,7 +38,6 @@ export function capChunkTokens(text: string): string {
 /** One embeddings POST with exponential backoff on 429 (rate limit). */
 async function embedRequest(
   baseUrl: string,
-  apiKey: string,
   model: string,
   batch: string[],
 ): Promise<Array<{ index: number; embedding: number[] }>> {
@@ -49,7 +48,7 @@ async function embedRequest(
     const response = await fetch(`${baseUrl}/embeddings`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${Deno.env.get("LLM_API_KEY") ?? ""}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -67,9 +66,16 @@ async function embedRequest(
     lastStatus = response.status;
     detail = await response.text().catch(() => "");
 
-    // 429 rate-limited: wait 0.5s * 2^attempt (max ~4s), then retry.
+    // 429 rate-limited: wait out the reset. Free tiers reset per minute, so
+    // backoff is generous (2s * 2^attempt, max ~8s) and a Retry-After header
+    // is respected verbatim when the server sends one.
     if (response.status === 429 && attempt < MAX_429_RETRIES) {
-      await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
+      const retryAfter = Number(response.headers.get("Retry-After"));
+      const waitMs =
+        Number.isFinite(retryAfter) && retryAfter > 0
+          ? Math.min(retryAfter * 1000, 60000)
+          : 2000 * 2 ** attempt;
+      await new Promise((r) => setTimeout(r, waitMs));
       continue;
     }
     break;
@@ -88,12 +94,12 @@ async function embedRequest(
 export async function embedTexts(
   texts: string[],
   {
-    apiKey = Deno.env.get("LLM_API_KEY") ?? "",
     baseUrl = Deno.env.get("LLM_BASE_URL") ?? "",
     model = EMBEDDING_MODEL,
-  }: { apiKey?: string; baseUrl?: string; model?: string } = {},
+  }: { baseUrl?: string; model?: string } = {},
 ): Promise<number[][]> {
   if (texts.length === 0) return [];
+  const apiKey = Deno.env.get("LLM_API_KEY");
   if (!baseUrl || !apiKey) throw new QwenError("LLM configuration missing");
 
   const clean = texts.map(capChunkTokens);
@@ -101,43 +107,51 @@ export async function embedTexts(
 
   for (let i = 0; i < clean.length; i += EMBED_BATCH_SIZE) {
     const batch = clean.slice(i, i + EMBED_BATCH_SIZE);
-    const data = await embedRequest(baseUrl, apiKey, model, batch);
+    const data = await embedRequest(baseUrl, model, batch);
 
     if (data.length !== batch.length) {
       throw new QwenError(
         `Embedding response mismatch: sent ${batch.length}, got ${data.length}`,
       );
     }
+    // The API may return embeddings out of order when batching; restore by
+    // each item's `index` (position within the full input), not arrival order.
     for (const item of data) {
+      const pos = (item.index ?? 0) - i;
+      if (pos < 0 || pos >= batch.length) {
+        throw new QwenError(
+          `Embedding response index out of range: ${item.index ?? "(missing)"} for batch starting at ${i}`,
+        );
+      }
       if (item.embedding?.length !== EMBED_DIMS) {
         throw new QwenError(
           `Embedding dimension mismatch: expected ${EMBED_DIMS}, got ${item.embedding?.length ?? 0}`,
         );
       }
-      ordered.push(item.embedding);
+      ordered[pos] = item.embedding;
     }
   }
   return ordered;
 }
 
-export function createQwenEmbedder(apiKey?: string) {
+/** Always reads LLM_API_KEY itself; no key is ever passed in. */
+export function createQwenEmbedder() {
   return {
     async embedMany(texts: string[]): Promise<number[][]> {
-      return embedTexts(texts, { apiKey });
+      return embedTexts(texts);
     },
   };
 }
 
 /**
  * Non-streaming chat completion — delegates to chat() in llm.ts
- * (single source of truth; options are kept for call-site compatibility
- * but ignored, since llm.ts owns the model/settings).
+ * (single source of truth); options like temperature/maxTokens are forwarded.
  */
 export async function chatCompletion(
   messages: ChatMessage[],
-  _opts: unknown = {},
+  opts: { temperature?: number; maxTokens?: number } = {},
 ): Promise<ChatCompletionResult> {
-  return chat(messages);
+  return chat(messages, opts);
 }
 
 /** OpenAI-style chat message as sent to (and returned from) the LLM. */
