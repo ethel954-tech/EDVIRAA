@@ -33,6 +33,13 @@ type PdfJsModule = {
 const BODY_FONT_SIZE = 11; // typical body text in study PDFs
 const HEADING_RATIO = 1.25; // heading = 25%+ larger than body
 
+export class PdfPageLimitError extends Error {
+  constructor() {
+    super("This PDF has too many pages to process in one upload.");
+    this.name = "PdfPageLimitError";
+  }
+}
+
 /**
  * Fold typographic punctuation to ASCII forms. PDF StandardEncoding maps
  * the ASCII apostrophe byte to U+2019 (\u2019), so extracted text carries
@@ -46,7 +53,10 @@ function normalizePunctuation(text: string): string {
     .replace(/\u2026/g, "...");
 }
 
-export async function extractTextFromPdf(bytes: Uint8Array): Promise<string> {
+export async function extractTextFromPdf(
+  bytes: Uint8Array,
+  maxPages: number,
+): Promise<string> {
   // Dynamic import keeps pdfjs out of any main bundle. The specifier MUST be
   // a pinned npm: URL — bare specifiers ("pdfjs-dist") are not resolvable by
   // the Supabase edge deploy-time bundler (deploy 500s with
@@ -68,6 +78,10 @@ export async function extractTextFromPdf(bytes: Uint8Array): Promise<string> {
     isEvalSupported: false,
     disableFontFace: true,
   }).promise;
+
+  if (doc.numPages > maxPages) {
+    throw new PdfPageLimitError();
+  }
 
   const pages: string[] = [];
 

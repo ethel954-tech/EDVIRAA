@@ -4,7 +4,7 @@
 // 1. Verifies the caller (JWT) and that the document belongs to them.
 // 2. Downloads the PDF from the private `documents` bucket.
 // 3. Extracts text (pdfjs-dist), chunks into passages (shared chunker).
-// 4. Embeds all chunks with Qwen text-embedding-v3 (1024 dims).
+// 4. Embeds all chunks with the configured embedding model (1024 dims).
 // 5. Inserts document_chunks rows and flips documents.status -> 'ready'.
 //
 // Any failure marks the document 'failed' so the UI stops saying Processing.
@@ -17,7 +17,7 @@ import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 // @ts-ignore: same as above.
 import { chunkPassages } from "../_shared/chunker.ts";
 // @ts-ignore: same as above.
-import { extractTextFromPdf } from "../_shared/pdf.ts";
+import { extractTextFromPdf, PdfPageLimitError } from "../_shared/pdf.ts";
 // @ts-ignore: Deno npm: specifier — resolved by the edge runtime, not tsc.
 import { createQwenEmbedder, EMBEDDING_DIMENSIONS } from "../_shared/qwen.ts";
 
@@ -26,6 +26,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
+
+// Supabase allows 2s CPU per request. The rough local estimate is 20-40ms per
+// page, scaled 1.5-3x for the edge worker (up to 120ms/page). Eight pages use
+// about 0.96s at that upper estimate, leaving time for PDF initialization and
+// chunking. This is a heuristic; complex PDFs can take longer.
+const MAX_PDF_PAGES = 8;
+const MAX_EXTRACTED_CHARS = 150_000;
+const MAX_CHUNKS = 120;
 
 interface ProcessRequest {
   documentId: string;
@@ -94,10 +102,26 @@ Deno.serve(async (req: Request) => {
     // ---------------------------------------------------------------
     // Extract -> chunk -> embed
     // ---------------------------------------------------------------
-    const text = await extractTextFromPdf(bytes);
+    const text = await extractTextFromPdf(bytes, MAX_PDF_PAGES);
     const passages = chunkPassages(text);
     if (passages.length === 0) {
       throw new Error("No extractable content found in this PDF.");
+    }
+
+    if (text.length > MAX_EXTRACTED_CHARS || passages.length > MAX_CHUNKS) {
+      // Flip to failed via the user-scoped client (documents_update_own) so
+      // the UI stops saying Processing, then explain the limit.
+      await supabase
+        .from("documents")
+        .update({ status: "failed" })
+        .eq("id", document.id);
+      return json(
+        {
+          error:
+            "This PDF is too large to process within the 8-page limit. Split it into smaller parts and upload them separately.",
+        },
+        413,
+      );
     }
 
     const embedder = createQwenEmbedder();
@@ -144,6 +168,8 @@ Deno.serve(async (req: Request) => {
     return json({ ok: true, chunks: rows.length });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Ingestion failed.";
+    const status = err instanceof PdfPageLimitError ? 413 : 500;
+    console.error("[process-document] ingestion failed:", documentId, message);
 
     // Never leave a document stuck on Processing: with the service client,
     // flip the row to 'failed' so the UI shows the truth.
@@ -154,7 +180,7 @@ Deno.serve(async (req: Request) => {
         .eq("id", documentId);
     }
 
-    return json({ error: message }, 500);
+    return json({ error: message }, status);
   }
 });
 
