@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CloudUpload, FileText, LoaderCircle, X } from "lucide-react";
 import { uploadAndProcessPdf } from "@/lib/document-upload";
+import { PRIVACY_NOTICE } from "@/lib/privacy-notice";
 import { cn } from "@/lib/utils";
 
 type SubjectOption = { id: string; name: string };
@@ -146,6 +147,13 @@ export function UploadZone({ subjects }: { subjects: SubjectOption[] }) {
         </p>
         <p className="mt-0.5 text-[11.5px] text-[var(--ink-soft)]">
           PDFs up to 50 MB, stored privately in your account
+        </p>
+        <p
+          role="note"
+          aria-label="AI privacy notice"
+          className="mt-2 max-w-sm text-[11px] leading-snug text-[var(--ink-soft)]"
+        >
+          {PRIVACY_NOTICE.text}
         </p>
         <input
           ref={inputRef}

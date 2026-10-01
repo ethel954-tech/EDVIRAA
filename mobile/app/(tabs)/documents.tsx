@@ -14,6 +14,7 @@ import { supabase } from '../../src/lib/supabase';
 import { getActiveSubject, type Subject } from '../../src/lib/subjects';
 import { uploadAndProcessPdf, pollDocumentStatus } from '../../src/lib/documentUpload';
 import { colors, radius } from '../../src/lib/theme';
+import { PRIVACY_NOTICE } from '../../src/lib/privacyNotice';
 import { AppDrawer } from '../../src/components/Drawer';
 import { Menu, UploadCloud, FileText, Trash2 } from 'lucide-react-native';
 
@@ -212,6 +213,8 @@ export default function MobileDocumentsScreen() {
           <Text style={styles.uploadSub}>PDF files up to 50 MB</Text>
         </TouchableOpacity>
 
+        <Text style={styles.privacyNotice}>{PRIVACY_NOTICE}</Text>
+
         {/* Bulk cleanup for failed ingestions */}
         {failedCount > 0 ? (
           <TouchableOpacity
@@ -318,7 +321,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: 24,
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 8,
   },
   uploadIconBadge: {
     width: 48,
@@ -331,6 +334,13 @@ const styles = StyleSheet.create({
   },
   uploadTitle: { fontSize: 14, fontWeight: '700', color: colors.ink },
   uploadSub: { fontSize: 12, color: colors.inkSoft, marginTop: 2 },
+  privacyNotice: {
+    marginBottom: 24,
+    marginHorizontal: 8,
+    fontSize: 11,
+    lineHeight: 15,
+    color: colors.inkSoft,
+  },
   bulkDeleteBtn: {
     flexDirection: 'row',
     alignItems: 'center',

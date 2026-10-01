@@ -22,6 +22,7 @@ import { getActiveSubject, setActiveSubject, listSubjects, type Subject } from '
 import { uploadAndProcessPdf, pollDocumentStatus } from '../../src/lib/documentUpload';
 import * as DocumentPicker from 'expo-document-picker';
 import { colors, radius } from '../../src/lib/theme';
+import { PRIVACY_NOTICE } from '../../src/lib/privacyNotice';
 import { AppDrawer } from '../../src/components/Drawer';
 import {
   Menu,
@@ -453,6 +454,7 @@ export default function MobileTutorScreen() {
             <Text style={styles.subjectChipText}>{subject ? subject.name : 'Biology 101'}</Text>
             <ChevronDown size={12} color={colors.inkSoft} />
           </TouchableOpacity>
+          <Text style={styles.privacyNotice}>{PRIVACY_NOTICE}</Text>
         </View>
 
         {/* Chat Thread */}
@@ -754,6 +756,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: colors.inkSoft,
+  },
+  privacyNotice: {
+    marginTop: 10,
+    marginHorizontal: 24,
+    fontSize: 11,
+    lineHeight: 15,
+    color: colors.inkSoft,
+    textAlign: 'center',
   },
   thread: {
     paddingHorizontal: 18,

@@ -32,6 +32,7 @@ import {
   stopSpeaking,
 } from "@/lib/speech";
 import { AuthError, TextInput } from "@/components/auth/form-fields";
+import { PRIVACY_NOTICE } from "@/lib/privacy-notice";
 import { cn } from "@/lib/utils";
 
 type SubjectOption = { id: string; name: string };
@@ -464,6 +465,13 @@ export function TutorChat({
           </div>
           <p className="mt-0.5 text-[13.5px] text-[var(--ink-soft)]">
             Grounded in your uploaded notes & documents
+          </p>
+          <p
+            role="note"
+            aria-label="AI privacy notice"
+            className="mt-1 max-w-xl text-[11px] leading-snug text-[var(--ink-soft)]"
+          >
+            {PRIVACY_NOTICE.text}
           </p>
         </div>
 
