@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2, LoaderCircle } from "lucide-react";
 import { deleteDocuments } from "@/lib/documents";
+import { callEdgeFunction } from "@/lib/edge";
 
 type DocumentRow = {
   id: string;
@@ -12,6 +13,8 @@ type DocumentRow = {
   storage_path: string | null;
   created_at: string;
   subject_name: string | null;
+  summary: string | null;
+  summary_partial: boolean | null;
 };
 
 const statusStyles: Record<string, string> = {
@@ -41,6 +44,25 @@ export function DocumentDeleteActions({ documents }: { documents: DocumentRow[] 
   const [busyDocId, setBusyDocId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [summarizingId, setSummarizingId] = useState<string | null>(null);
+  const [summaryErrors, setSummaryErrors] = useState<Record<string, string>>({});
+
+  async function handleSummarize(doc: DocumentRow) {
+    setError(null);
+    setSummaryErrors((prev) => ({ ...prev, [doc.id]: "" }));
+    setSummarizingId(doc.id);
+    try {
+      await callEdgeFunction("backfill-summary", { documentId: doc.id });
+      router.refresh();
+    } catch (e) {
+      setSummaryErrors((prev) => ({
+        ...prev,
+        [doc.id]: e instanceof Error ? e.message : "Could not generate a summary.",
+      }));
+    } finally {
+      setSummarizingId(null);
+    }
+  }
 
   const failedDocs = documents.filter((d) => d.status === "failed");
 
@@ -159,6 +181,36 @@ export function DocumentDeleteActions({ documents }: { documents: DocumentRow[] 
                   Uploaded {formatDate(doc.created_at)}
                   {doc.subject_name ? ` · ${doc.subject_name}` : ""}
                 </p>
+                {doc.status === "ready" && doc.summary ? (
+                  <p className="mt-1.5 rounded-[8px] bg-[var(--teal-pale)] px-2.5 py-1.5 text-xs leading-snug text-[var(--ink)]">
+                    {doc.summary}
+                    {doc.summary_partial ? (
+                      <span className="block pt-0.5 text-[10px] italic text-[var(--ink-soft)]">
+                        Based on a sample of this document.
+                      </span>
+                    ) : null}
+                  </p>
+                ) : null}
+                {doc.status === "ready" && !doc.summary ? (
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSummarize(doc)}
+                      disabled={summarizingId === doc.id}
+                      className="flex items-center gap-1 rounded-full border border-[var(--border)] px-2.5 py-1 text-[11px] font-semibold text-[var(--ink-soft)] hover:border-[var(--teal)] hover:text-[var(--teal-dark)] disabled:opacity-60"
+                    >
+                      {summarizingId === doc.id ? (
+                        <LoaderCircle className="h-3 w-3 animate-spin" />
+                      ) : null}
+                      Add summary
+                    </button>
+                    {summaryErrors[doc.id] ? (
+                      <span role="alert" className="text-[11px] text-red-600">
+                        {summaryErrors[doc.id]}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
               <span
                 className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusStyles[doc.status] ?? ""}`}

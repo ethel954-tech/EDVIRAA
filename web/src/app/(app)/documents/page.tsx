@@ -33,7 +33,7 @@ export default async function DocumentsPage() {
       .order("name"),
     supabase
       .from("documents")
-      .select("id, title, status, storage_path, created_at, subjects(name)")
+      .select("id, title, status, storage_path, created_at, summary, summary_partial, subjects(name)")
       .eq("student_id", user.id)
       .order("created_at", { ascending: false }),
   ]);
@@ -47,6 +47,8 @@ export default async function DocumentsPage() {
       status: doc.status,
       storage_path: doc.storage_path,
       created_at: doc.created_at,
+      summary: doc.summary ?? null,
+      summary_partial: doc.summary_partial ?? null,
       subject_name: subj?.name ?? null,
     };
   });
