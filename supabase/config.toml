@@ -1,0 +1,28 @@
+# Supabase project configuration.
+#
+# Edge functions: JWT verification is pinned explicitly (per-function entries
+# override [functions.global]) so a future `supabase config push`/deploy
+# change can never silently disable auth checks at the gateway.
+#
+# speech-transcribe is deliberately left to its own in-function checks (it
+# only validates the Authorization header today) — it must not be loosened
+# or tightened from here while its provider question is open.
+project_id = "edviraa"
+
+[functions.process-document]
+verify_jwt = true
+
+[functions.tutor-chat]
+verify_jwt = true
+
+[functions.rag-search]
+verify_jwt = true
+
+[functions.generate-roadmap]
+verify_jwt = true
+
+[functions.generate-study-materials]
+verify_jwt = true
+
+[functions.suggest-exam-feedback]
+verify_jwt = true
