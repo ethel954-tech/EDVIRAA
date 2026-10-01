@@ -143,6 +143,7 @@ Deno.serve(async (req: Request) => {
         .single();
 
       if (error || !created) {
+        console.error("[tutor-chat] conversation create failed:", error?.message);
         return json({ error: `Could not start conversation: ${error.message}` }, 500);
       }
       activeConversationId = created.id;
@@ -183,6 +184,7 @@ Deno.serve(async (req: Request) => {
         context = (matches ?? []) as RetrievedChunk[];
       }
     } catch (err) {
+      console.error("[tutor-chat] retrieval failed:", err);
       retrievalError = err instanceof Error ? err.message : "Retrieval failed";
     }
 
@@ -231,7 +233,7 @@ Deno.serve(async (req: Request) => {
       retrievalError,
     });
   } catch (err) {
-    console.error("Tutor chat failed:", err);
+    console.error("[tutor-chat] request failed:", err);
     return json(
       { error: "Internal server error" },
       500,

@@ -45,7 +45,10 @@ export async function chat(
     });
 
     if (!response.ok) {
-      const detail = await response.text().catch(() => "");
+      const detail = await response.text().catch((err) => {
+        console.error("[llm] response body read failed:", err);
+        return "";
+      });
       throw new Error(`Chat request failed (${response.status}): ${detail.slice(0, 300)}`);
     }
 

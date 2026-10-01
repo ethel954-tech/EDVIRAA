@@ -147,6 +147,7 @@ Deno.serve(async (req: Request) => {
       .limit(MAX_CHUNKS);
 
     if (chunksError) {
+      console.error("[generate-study-materials] document chunks query failed:", chunksError.message);
       return json({ error: `Could not read the document: ${chunksError.message}` }, 500);
     }
     if (!chunks || chunks.length === 0) {
@@ -198,7 +199,8 @@ Deno.serve(async (req: Request) => {
     };
     try {
       parsed = JSON.parse(extractJson(completion.content));
-    } catch {
+    } catch (err) {
+      console.error("[generate-study-materials] model response parse failed:", err);
       return json(
         { error: "The model returned an unexpected format. Please try again." },
         502,
@@ -229,6 +231,7 @@ Deno.serve(async (req: Request) => {
       }));
       const { error: insertError } = await supabase.from("flashcards").insert(rows);
       if (insertError) {
+        console.error("[generate-study-materials] flashcard insert failed:", insertError.message);
         return json({ error: `Could not save flashcards: ${insertError.message}` }, 500);
       }
 
@@ -260,6 +263,7 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (quizError || !quiz) {
+      console.error("[generate-study-materials] quiz insert failed:", quizError?.message);
       return json({ error: `Could not save the quiz: ${quizError?.message}` }, 500);
     }
 
@@ -275,11 +279,13 @@ Deno.serve(async (req: Request) => {
     );
 
     if (qError) {
+      console.error("[generate-study-materials] quiz questions insert failed:", qError.message);
       return json({ error: `Could not save the questions: ${qError.message}` }, 500);
     }
 
     return json({ ok: true, kind, documentId, quizId: quiz.id, count: questions.length });
   } catch (err) {
+    console.error("[generate-study-materials] request failed:", err);
     return json(
       { error: err instanceof Error ? err.message : "Generation failed." },
       500,

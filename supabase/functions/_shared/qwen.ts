@@ -64,7 +64,10 @@ async function embedRequest(
     }
 
     lastStatus = response.status;
-    detail = await response.text().catch(() => "");
+    detail = await response.text().catch((err) => {
+      console.error("[qwen] response body read failed:", err);
+      return "";
+    });
 
     // 429 rate-limited: wait out the reset. Free tiers reset per minute, so
     // backoff is generous (2s * 2^attempt, max ~8s) and a Retry-After header

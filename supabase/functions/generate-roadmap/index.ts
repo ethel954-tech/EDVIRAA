@@ -102,6 +102,7 @@ Deno.serve(async (req: Request) => {
       .limit(MAX_DOCS);
 
     if (docsError) {
+      console.error("[generate-roadmap] documents query failed:", docsError.message);
       return json({ error: `Could not read documents: ${docsError.message}` }, 500);
     }
     if (!documents || documents.length === 0) {
@@ -123,6 +124,7 @@ Deno.serve(async (req: Request) => {
       .order("chunk_index", { ascending: true });
 
     if (chunksError) {
+      console.error("[generate-roadmap] document chunks query failed:", chunksError.message);
       return json({ error: `Could not read content: ${chunksError.message}` }, 500);
     }
 
@@ -190,7 +192,8 @@ Return JSON exactly in this shape:
       const start = withoutFences.indexOf("{");
       const end = withoutFences.lastIndexOf("}");
       parsed = JSON.parse(withoutFences.slice(start, end + 1));
-    } catch {
+    } catch (err) {
+      console.error("[generate-roadmap] model response parse failed:", err);
       return json(
         { error: "The model returned an unexpected format. Please try again." },
         502,
@@ -240,6 +243,7 @@ Return JSON exactly in this shape:
       .select("id, order_index");
 
     if (insertError || !inserted) {
+      console.error("[generate-roadmap] roadmap insert failed:", insertError?.message);
       return json({ error: `Could not save the roadmap: ${insertError?.message}` }, 500);
     }
 
@@ -256,6 +260,7 @@ Return JSON exactly in this shape:
       .insert(topicRows);
 
     if (topicsError) {
+      console.error("[generate-roadmap] topics insert failed:", topicsError.message);
       return json({ error: `Could not save topics: ${topicsError.message}` }, 500);
     }
 
@@ -266,6 +271,7 @@ Return JSON exactly in this shape:
       topics: topicRows.length,
     });
   } catch (err) {
+    console.error("[generate-roadmap] request failed:", err);
     return json(
       { error: err instanceof Error ? err.message : "Roadmap generation failed." },
       500,

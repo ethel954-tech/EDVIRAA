@@ -39,6 +39,7 @@ Deno.serve(async (req: Request) => {
 
     const apiKey = Deno.env.get("DASHSCOPE_API_KEY");
     if (!apiKey) {
+      console.error("[speech-transcribe] provider API key is not configured");
       return json({ error: "DASHSCOPE_API_KEY is not configured" }, 500);
     }
 
@@ -88,7 +89,10 @@ Deno.serve(async (req: Request) => {
       },
     );
 
-    const payload = await res.json().catch(() => ({}));
+    const payload = await res.json().catch((err) => {
+      console.error("[speech-transcribe] provider response parse failed:", err);
+      return {};
+    });
     if (!res.ok) {
       throw new Error(payload?.error?.message || `ASR API error ${res.status}`);
     }
@@ -101,6 +105,7 @@ Deno.serve(async (req: Request) => {
 
     return json({ ok: true, transcript }, 200);
   } catch (err) {
+    console.error("[speech-transcribe] transcription failed:", err);
     return json(
       { error: err instanceof Error ? err.message : "Transcription failed." },
       500,

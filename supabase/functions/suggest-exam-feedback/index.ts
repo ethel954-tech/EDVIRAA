@@ -201,7 +201,8 @@ Deno.serve(async (req: Request) => {
     let suggestion: QwenGrade;
     try {
       suggestion = parseGradeReply(reply.content, maxPoints);
-    } catch {
+    } catch (err) {
+      console.error("[suggest-exam-feedback] model response parse failed:", err);
       return json(
         { error: "The model returned an unexpected reply. Try again." },
         502,
@@ -221,6 +222,7 @@ Deno.serve(async (req: Request) => {
       suggestedFeedback: suggestion.feedback,
     });
   } catch (e) {
+    console.error("[suggest-exam-feedback] request failed:", e);
     return json(
       { error: e instanceof Error ? e.message : "Unexpected error" },
       500,

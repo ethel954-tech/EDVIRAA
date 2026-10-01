@@ -84,6 +84,7 @@ Deno.serve(async (req: Request) => {
     );
 
     if (error) {
+      console.error("[rag-search] search_document_chunks failed:", error.message);
       return json({ error: `Search failed: ${error.message}` }, 500);
     }
 
