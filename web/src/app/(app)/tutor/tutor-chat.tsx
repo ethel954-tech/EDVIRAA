@@ -51,6 +51,7 @@ type ChatUIMessage = {
   content: string;
   sources?: SourceRef[];
   contextUsed?: boolean;
+  persistenceWarning?: boolean;
   pending?: boolean;
 };
 
@@ -355,6 +356,7 @@ export function TutorChat({
         reply?: string;
         sources?: SourceRef[];
         contextUsed?: boolean;
+        persistenceWarning?: boolean;
       };
 
       if (!response.ok || payload.error || !payload.reply) {
@@ -369,6 +371,7 @@ export function TutorChat({
                 content: payload.reply!,
                 sources: payload.sources,
                 contextUsed: payload.contextUsed,
+                persistenceWarning: payload.persistenceWarning,
                 pending: false,
               }
             : m,
@@ -516,6 +519,11 @@ export function TutorChat({
                         </span>
                       ))}
                     </div>
+                  ) : null}
+                  {!m.pending && m.persistenceWarning ? (
+                    <span className="ml-1 text-[11px] text-[var(--ink-soft)]">
+                      This reply wasn&apos;t saved to chat history.
+                    </span>
                   ) : null}
                   {!m.pending && m.content && speechReady && readAloudSupported() ? (
                     <button

@@ -110,7 +110,9 @@ export async function uploadAndProcessPdf({
         .from("documents")
         .update({ status: "failed" as const })
         .eq("id", documentId);
-      throw new Error(`Could not start processing: ${invokeError.message}`);
+      throw new Error(
+        `Could not start processing: ${await getFunctionErrorMessage(invokeError)}`,
+      );
     }
 
     return { ok: true, documentId: createdDocumentId };
@@ -127,6 +129,17 @@ export async function uploadAndProcessPdf({
         err instanceof Error ? err.message : "Upload failed. Please try again.",
     };
   }
+}
+
+async function getFunctionErrorMessage(error: { message: string; context?: unknown }): Promise<string> {
+  if (error.context instanceof Response) {
+    const payload = await error.context.clone().json().catch(() => null) as
+      | { error?: unknown; message?: unknown }
+      | null;
+    if (typeof payload?.error === "string") return payload.error;
+    if (typeof payload?.message === "string") return payload.message;
+  }
+  return error.message;
 }
 
 /**

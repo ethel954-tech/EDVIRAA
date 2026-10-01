@@ -275,6 +275,7 @@ export function RoomsView({
           onClose={() => setCreateOpen(false)}
           onDone={(id) => {
             setCreateOpen(false);
+            router.refresh();
             router.push(`/rooms/${id}`);
           }}
           setBusy={setBusy}
@@ -288,6 +289,7 @@ export function RoomsView({
           onClose={() => setJoinOpen(false)}
           onDone={(id) => {
             setJoinOpen(false);
+            router.refresh();
             router.push(`/rooms/${id}`);
           }}
           setBusy={setBusy}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Modal,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
 import { colors, radius } from '../../src/lib/theme';
 import { getActiveSubject, setActiveSubject, listSubjects, type Subject } from '../../src/lib/subjects';
@@ -28,6 +28,7 @@ import {
 export default function MobileDashboardScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [gamification, setGamification] = useState<any>(null);
   const [rooms, setRooms] = useState<any[]>([]);
@@ -43,30 +44,34 @@ export default function MobileDashboardScreen() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [subjectModalOpen, setSubjectModalOpen] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useFocusEffect(useCallback(() => {
+    void loadData();
+  }, []));
 
   async function loadData() {
     setLoading(true);
+    setLoadError(null);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        setLoadError('Your session has expired. Sign in again to load your dashboard.');
+        return;
+      }
 
       const weekStart = new Date();
       weekStart.setHours(0, 0, 0, 0);
       weekStart.setDate(weekStart.getDate() - weekStart.getDay());
 
       const [
-        { data: prof },
-        { data: gami },
-        { data: rmMembers },
+        profileResult,
+        gamificationResult,
+        roomMembershipsResult,
         subs,
         activeSub,
-        { data: sessions },
-        { data: quizzes },
-        { count: weeklySessionCount },
-        { count: earnedBadgeCount },
+        sessionsResult,
+        quizzesResult,
+        weeklySessionsResult,
+        badgesResult,
       ] = await Promise.all([
         supabase.from('profiles').select('display_name').eq('id', user.id).maybeSingle(),
         supabase.from('gamification').select('xp, current_streak').eq('user_id', user.id).maybeSingle(),
@@ -79,22 +84,34 @@ export default function MobileDashboardScreen() {
         supabase.from('user_badges').select('badge_id', { count: 'exact', head: true }).eq('user_id', user.id),
       ]);
 
-      setProfile(prof);
-      setGamification(gami);
-      setRooms((rmMembers ?? []).map((m: any) => Array.isArray(m.rooms) ? m.rooms[0] : m.rooms).filter(Boolean));
+      const queryError = [
+        profileResult.error,
+        gamificationResult.error,
+        roomMembershipsResult.error,
+        sessionsResult.error,
+        quizzesResult.error,
+        weeklySessionsResult.error,
+        badgesResult.error,
+      ].find(Boolean);
+      if (queryError) throw new Error(queryError.message);
+
+      setProfile(profileResult.data);
+      setGamification(gamificationResult.data);
+      setRooms((roomMembershipsResult.data ?? []).map((m: any) => Array.isArray(m.rooms) ? m.rooms[0] : m.rooms).filter(Boolean));
       setSubjects(subs);
       const selectedSubject = activeSub || subs[0] || null;
       setSubject(selectedSubject);
-      setSessionsThisWeek(weeklySessionCount ?? 0);
-      setBadgeCount(earnedBadgeCount ?? 0);
+      setSessionsThisWeek(weeklySessionsResult.count ?? 0);
+      setBadgeCount(badgesResult.count ?? 0);
 
-      const { data: moduleRows } = selectedSubject
+      const { data: moduleRows, error: modulesError } = selectedSubject
         ? await supabase
             .from('modules')
             .select('id, title, order_index, status, topics(id, title, order_index, completed_at)')
             .eq('subject_id', selectedSubject.id)
             .order('order_index', { ascending: true })
         : { data: [] };
+      if (modulesError) throw new Error(modulesError.message);
       const sortedModules = (moduleRows ?? []).map((module: any) => ({
         ...module,
         topics: [...(module.topics ?? [])].sort((left: any, right: any) => left.order_index - right.order_index),
@@ -106,13 +123,13 @@ export default function MobileDashboardScreen() {
         : null);
 
       setRecentActivities([
-        ...(sessions ?? []).map((session: any) => ({
+        ...(sessionsResult.data ?? []).map((session: any) => ({
           id: `session-${session.id}`,
           title: session.summary?.trim() || 'Study session',
           detail: session.xp_earned > 0 ? `${session.xp_earned} XP earned` : null,
           createdAt: session.started_at,
         })),
-        ...(quizzes ?? []).map((attempt: any) => {
+        ...(quizzesResult.data ?? []).map((attempt: any) => {
           const quiz = Array.isArray(attempt.quizzes) ? attempt.quizzes[0] : attempt.quizzes;
           return {
             id: `quiz-${attempt.id}`,
@@ -122,8 +139,8 @@ export default function MobileDashboardScreen() {
           };
         }),
       ].sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt)).slice(0, 5));
-    } catch {
-      // Graceful fallback defaults
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : 'Could not load your dashboard. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -143,6 +160,20 @@ export default function MobileDashboardScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={colors.teal} />
+      </View>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <View style={styles.center}>
+        <View style={styles.errorCard}>
+          <Text style={styles.errorTitle}>Couldn&apos;t load your dashboard</Text>
+          <Text style={styles.errorMessage}>{loadError}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadData} accessibilityRole="button">
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -421,6 +452,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.bg,
   },
+  errorCard: {
+    width: '100%',
+    maxWidth: 420,
+    padding: 20,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  errorTitle: { fontSize: 18, fontWeight: '700', color: colors.ink },
+  errorMessage: { fontSize: 14, color: colors.inkSoft, marginTop: 8 },
+  retryButton: {
+    alignSelf: 'flex-start',
+    marginTop: 16,
+    minHeight: 42,
+    justifyContent: 'center',
+    borderRadius: radius.md,
+    backgroundColor: colors.teal,
+    paddingHorizontal: 18,
+  },
+  retryButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   topHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

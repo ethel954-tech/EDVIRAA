@@ -231,6 +231,7 @@ Deno.serve(async (req: Request) => {
       })),
       contextUsed: context.length > 0,
       retrievalError,
+      persistenceWarning: Boolean(persistError),
     });
   } catch (err) {
     console.error("[tutor-chat] request failed:", err);

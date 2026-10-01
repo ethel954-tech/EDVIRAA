@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { supabase } from '../../../src/lib/supabase';
 import { colors, radius } from '../../../src/lib/theme';
 import { AppDrawer } from '../../../src/components/Drawer';
@@ -27,9 +27,9 @@ export default function MobileRoomsScreen() {
   const [inviteCode, setInviteCode] = useState('');
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    fetchRooms();
-  }, []);
+  useFocusEffect(useCallback(() => {
+    void fetchRooms();
+  }, []));
 
   async function fetchRooms() {
     setLoading(true);
@@ -65,6 +65,7 @@ export default function MobileRoomsScreen() {
       setCreateModal(false);
       setRoomName('');
       if (roomId) {
+        await fetchRooms();
         router.replace(`/(tabs)/rooms/${roomId}`);
       } else {
         fetchRooms();
@@ -87,6 +88,7 @@ export default function MobileRoomsScreen() {
       setJoinModal(false);
       setInviteCode('');
       if (data) {
+        await fetchRooms();
         router.replace(`/(tabs)/rooms/${data}`);
       } else {
         fetchRooms();

@@ -48,6 +48,7 @@ type Message = {
   role: 'user' | 'assistant';
   content: string;
   sources?: { documentTitle: string }[];
+  persistenceWarning?: boolean;
   pending?: boolean;
 };
 
@@ -81,6 +82,7 @@ export default function MobileTutorScreen() {
   ]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
@@ -122,8 +124,10 @@ export default function MobileTutorScreen() {
         if (params.query && typeof params.query === 'string') {
           handleSend(params.query);
         }
-      } catch {
-        // screen still works without a subject
+      } catch (error) {
+        setNotice(error instanceof Error
+          ? `Could not load your tutor profile or subjects: ${error.message}`
+          : 'Could not load your tutor profile or subjects. Please try again.');
       }
     })();
   }, [params.query]);
@@ -139,8 +143,11 @@ export default function MobileTutorScreen() {
     setActiveConversationId(null);
     try {
       await setActiveSubject(next.id);
-    } catch {
-      // non-fatal
+      setNotice(null);
+    } catch (error) {
+      setNotice(error instanceof Error
+        ? `Could not save your active subject: ${error.message}`
+        : 'Could not save your active subject. It may reset next time.');
     }
   }
 
@@ -191,6 +198,7 @@ export default function MobileTutorScreen() {
                 ...m,
                 content: payload.reply || '(The tutor returned an empty reply.)',
                 sources: payload.sources || [],
+                persistenceWarning: payload.persistenceWarning === true,
                 pending: false,
               }
             : m
@@ -415,6 +423,15 @@ export default function MobileTutorScreen() {
         </TouchableOpacity>
       </View>
 
+      {notice ? (
+        <View style={styles.notice}>
+          <Text style={styles.noticeText}>{notice}</Text>
+          <TouchableOpacity onPress={() => setNotice(null)} accessibilityLabel="Dismiss notice">
+            <X size={16} color={colors.danger} />
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
       {/* Main Conversation Area */}
       <ScrollView
         ref={scrollViewRef}
@@ -457,6 +474,9 @@ export default function MobileTutorScreen() {
                         <FileText size={12} color={colors.teal} />
                         <Text style={styles.sourceText}>{m.sources[0].documentTitle}</Text>
                       </View>
+                    ) : null}
+                    {m.persistenceWarning ? (
+                      <Text style={styles.persistenceNotice}>This reply wasn&apos;t saved to chat history.</Text>
                     ) : null}
                     <TouchableOpacity
                       style={styles.listenBtn}
@@ -656,6 +676,20 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     backgroundColor: colors.bg,
   },
+  notice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.dangerPale,
+    borderRadius: radius.md,
+    backgroundColor: colors.dangerPale,
+  },
+  noticeText: { flex: 1, color: colors.danger, fontSize: 12 },
   menuBtn: {
     width: 40,
     height: 40,
@@ -751,6 +785,11 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     color: colors.ink,
     lineHeight: 21,
+  },
+  persistenceNotice: {
+    marginTop: 8,
+    color: colors.inkSoft,
+    fontSize: 11,
   },
   sourceRow: {
     flexDirection: 'row',
