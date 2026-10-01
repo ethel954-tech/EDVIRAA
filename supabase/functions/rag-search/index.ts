@@ -27,6 +27,12 @@ interface SearchRequest {
   matchCount?: number;
 }
 
+/** Queries longer than this are refused — they cost an embedding call and
+ *  are usually paste accidents, not real study questions. */
+const MAX_QUERY_CHARS = 500;
+/** Result ceiling: clients may ask for fewer, never more. */
+const MAX_MATCH_COUNT = 20;
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -37,6 +43,12 @@ Deno.serve(async (req: Request) => {
 
     if (!query?.trim()) {
       return json({ error: "query is required" }, 400);
+    }
+    if (query.trim().length > MAX_QUERY_CHARS) {
+      return json(
+        { error: `Query is too long (max ${MAX_QUERY_CHARS} characters).` },
+        400,
+      );
     }
     if (!subjectId) {
       return json({ error: "subjectId is required" }, 400);
@@ -67,7 +79,7 @@ Deno.serve(async (req: Request) => {
       {
         p_query_embedding: JSON.stringify(queryEmbedding),
         p_subject_id: subjectId,
-        p_match_count: matchCount ?? 8,
+        p_match_count: Math.min(Math.max(matchCount ?? 8, 1), MAX_MATCH_COUNT),
       },
     );
 
@@ -97,6 +109,7 @@ Deno.serve(async (req: Request) => {
       ),
     });
   } catch (err) {
+    console.error("[rag-search] request failed:", err);
     return json(
       { error: err instanceof Error ? err.message : "Search failed." },
       500,
