@@ -1,31 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BookOpen, FileText, Layers, ListChecks } from "lucide-react";
+import { Layers, ListChecks } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { UploadZone } from "./upload-zone";
+import { DocumentDeleteActions } from "./documents-list";
 
 export const metadata: Metadata = { title: "Documents" };
-
-const statusStyles: Record<string, string> = {
-  ready: "bg-[var(--teal-pale)] text-[var(--teal-dark)]",
-  processing: "bg-[var(--violet-pale)] text-[var(--violet)]",
-  failed: "bg-red-50 text-red-600",
-};
-
-const statusLabels: Record<string, string> = {
-  ready: "Ready",
-  processing: "Processing…",
-  failed: "Failed",
-};
-
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
 export default async function DocumentsPage() {
   const supabase = await createClient();
@@ -52,13 +33,23 @@ export default async function DocumentsPage() {
       .order("name"),
     supabase
       .from("documents")
-      .select("id, title, status, created_at, subject_id, subjects(name)")
+      .select("id, title, status, storage_path, created_at, subjects(name)")
       .eq("student_id", user.id)
       .order("created_at", { ascending: false }),
   ]);
 
   const subjectList = subjects ?? [];
-  const documentList = documents ?? [];
+  const documentRows = (documents ?? []).map((doc) => {
+    const subj = Array.isArray(doc.subjects) ? doc.subjects[0] : doc.subjects;
+    return {
+      id: doc.id,
+      title: doc.title,
+      status: doc.status,
+      storage_path: doc.storage_path,
+      created_at: doc.created_at,
+      subject_name: subj?.name ?? null,
+    };
+  });
 
   return (
     <div className="mx-auto max-w-[820px] px-4 py-8 space-y-6">
@@ -72,7 +63,7 @@ export default async function DocumentsPage() {
 
       <UploadZone subjects={subjectList} />
 
-      {documentList.length > 0 ? (
+      {documentRows.length > 0 ? (
         <div className="flex flex-wrap gap-2 pt-2">
           <Link
             href="/flashcards"
@@ -91,50 +82,7 @@ export default async function DocumentsPage() {
         </div>
       ) : null}
 
-      <section aria-label="Uploaded documents">
-        <h2 className="mb-3 font-sans text-base font-semibold text-[var(--ink)]">
-          Your documents
-        </h2>
-        {documentList.length === 0 ? (
-          <p className="card-study text-center text-sm text-[var(--ink-soft)] py-8">
-            No documents yet — your uploads will appear here.
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {documentList.map((doc) => {
-              const subj = Array.isArray(doc.subjects) ? doc.subjects[0] : doc.subjects;
-              return (
-                <li
-                  key={doc.id}
-                  className="flex items-center gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-3.5"
-                >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-[var(--teal-pale)] text-[var(--teal)]">
-                    <FileText className="h-4.5 w-4.5" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-[var(--ink)]">{doc.title}</p>
-                    <p className="mt-0.5 text-xs text-[var(--ink-soft)]">
-                      Uploaded {formatDate(doc.created_at)}
-                    </p>
-                  </div>
-                  {subj?.name ? (
-                    <span className="hidden items-center gap-1 rounded-full bg-[var(--teal-pale)] px-2.5 py-0.5 text-xs font-semibold text-[var(--teal-dark)] sm:flex">
-                      <BookOpen className="h-3 w-3" />
-                      {subj.name}
-                    </span>
-                  ) : null}
-                  <span
-                    className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusStyles[doc.status] ?? ""}`}
-                  >
-                    {statusLabels[doc.status] ?? doc.status}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+      <DocumentDeleteActions documents={documentRows} />
     </div>
   );
 }
-

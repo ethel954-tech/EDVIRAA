@@ -15,12 +15,16 @@ import { supabase } from '../../src/lib/supabase';
 import { getActiveSubject } from '../../src/lib/subjects';
 import { colors, radius } from '../../src/lib/theme';
 import { AppDrawer } from '../../src/components/Drawer';
-import { Menu, UploadCloud, FileText } from 'lucide-react-native';
+import { Menu, UploadCloud, FileText, Trash2 } from 'lucide-react-native';
 
 export default function MobileDocumentsScreen() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [documents, setDocuments] = useState<any[]>([]);
+
+  const failedCount = documents.filter((doc) => doc.status === 'failed').length;
 
   useEffect(() => {
     fetchDocuments();
@@ -36,7 +40,7 @@ export default function MobileDocumentsScreen() {
         .eq('student_id', user.id)
         .order('created_at', { ascending: false })
         .limit(50);
-      if (data && data.length > 0) setDocuments(data);
+      if (data) setDocuments(data);
     } catch {
       // keep list empty on failure
     }
@@ -123,6 +127,77 @@ export default function MobileDocumentsScreen() {
     }
   }
 
+  function deleteDocument(doc: any) {
+    const stillProcessing = doc.status === 'processing';
+    Alert.alert(
+      'Delete document?',
+      stillProcessing
+        ? `"${doc.title}" is still processing. Deleting now stops ingestion and removes partial data.`
+        : `"${doc.title}" and its embeddings, flashcards, and quizzes will be permanently deleted.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => performDelete([doc]),
+        },
+      ],
+    );
+  }
+
+  function deleteAllFailed() {
+    if (failedCount === 0 || bulkDeleting) return;
+    Alert.alert(
+      'Delete all failed documents?',
+      `${failedCount} failed document${failedCount === 1 ? '' : 's'} will be permanently deleted, along with any partial data.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: `Delete ${failedCount}`,
+          style: 'destructive',
+          onPress: () => performDelete(documents.filter((doc) => doc.status === 'failed')),
+        },
+      ],
+    );
+  }
+
+  async function performDelete(docs: any[]) {
+    const single = docs.length === 1;
+    if (single) setDeletingId(docs[0].id);
+    else setBulkDeleting(true);
+    try {
+      // Storage first: a failure here leaves the rows visible and retryable
+      // instead of orphaning the files. RLS limits removal to the user's own
+      // folder; a missing object is not an error.
+      const paths = docs.map((d) => d.storage_path).filter(Boolean);
+      if (paths.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from('documents')
+          .remove(paths);
+        if (storageError) throw new Error(storageError.message);
+      }
+      // Chunks, flashcards and quizzes go with the rows via ON DELETE CASCADE.
+      const ids = docs.map((d) => d.id);
+      const { error: rowError, count } = await supabase
+        .from('documents')
+        .delete({ count: 'exact' })
+        .in('id', ids);
+      if (rowError) throw new Error(rowError.message);
+      if (count === 0) {
+        throw new Error('Documents not found - they may already have been deleted.');
+      }
+      setDocuments((prev) => prev.filter((d) => !ids.includes(d.id)));
+    } catch (e: any) {
+      const label = single
+        ? `Could not delete "${docs[0].title}"`
+        : 'Could not delete failed documents';
+      Alert.alert('Delete Error', e.message || label);
+    } finally {
+      if (single) setDeletingId(null);
+      else setBulkDeleting(false);
+    }
+  }
+
   function decodeBase64(base64: string): Uint8Array {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
     const str = base64.replace(/=+$/, '');
@@ -177,40 +252,80 @@ export default function MobileDocumentsScreen() {
           <Text style={styles.uploadSub}>PDF files up to 50 MB</Text>
         </TouchableOpacity>
 
+        {/* Bulk cleanup for failed ingestions */}
+        {failedCount > 0 ? (
+          <TouchableOpacity
+            style={[styles.bulkDeleteBtn, bulkDeleting && styles.bulkDeleteBtnBusy]}
+            onPress={deleteAllFailed}
+            disabled={bulkDeleting}
+          >
+            {bulkDeleting ? (
+              <ActivityIndicator size="small" color={colors.danger} />
+            ) : (
+              <Trash2 size={16} color={colors.danger} />
+            )}
+            <Text style={styles.bulkDeleteText}>
+              Delete all failed ({failedCount})
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+
         {/* Document List */}
         <Text style={styles.sectionTitle}>Your documents</Text>
         <View style={styles.docList}>
           {documents.map((doc) => (
-            <TouchableOpacity
-              key={doc.id}
-              style={styles.docCard}
-              onPress={() => openDocument(doc)}
-            >
-              <View style={styles.docIcon}>
-                <FileText size={20} color={colors.teal} />
-              </View>
-              <View style={styles.docMain}>
-                <Text style={styles.docTitle}>{doc.title}</Text>
-                <Text style={styles.docSub}>
-                  Status: {doc.status === 'ready' ? 'Ready' : 'Processing...'}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.statusBadge,
-                  doc.status === 'ready' ? styles.statusReady : styles.statusProc,
-                ]}
+            <View key={doc.id} style={styles.docCard}>
+              <TouchableOpacity
+                style={styles.docTouchable}
+                onPress={() => openDocument(doc)}
+                disabled={deletingId === doc.id}
               >
-                <Text
+                <View style={styles.docIcon}>
+                  <FileText size={20} color={colors.teal} />
+                </View>
+                <View style={styles.docMain}>
+                  <Text style={styles.docTitle} numberOfLines={1}>{doc.title}</Text>
+                  <Text style={styles.docSub}>
+                    Status: {doc.status === 'ready' ? 'Ready' : doc.status === 'failed' ? 'Failed' : 'Processing...'}
+                  </Text>
+                </View>
+                <View
                   style={[
-                    styles.statusText,
-                    doc.status === 'ready' ? styles.statusTextReady : styles.statusTextProc,
+                    styles.statusBadge,
+                    doc.status === 'ready'
+                      ? styles.statusReady
+                      : doc.status === 'failed'
+                        ? styles.statusFailed
+                        : styles.statusProc,
                   ]}
                 >
-                  {doc.status === 'ready' ? 'Ready' : 'Processing'}
-                </Text>
-              </View>
-            </TouchableOpacity>
+                  <Text
+                    style={[
+                      styles.statusText,
+                      doc.status === 'ready'
+                        ? styles.statusTextReady
+                        : doc.status === 'failed'
+                          ? styles.statusTextFailed
+                          : styles.statusTextProc,
+                    ]}
+                  >
+                    {doc.status === 'ready' ? 'Ready' : doc.status === 'failed' ? 'Failed' : 'Processing'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.deleteBtn, deletingId === doc.id && styles.deleteBtnBusy]}
+                onPress={() => deleteDocument(doc)}
+                disabled={deletingId === doc.id || bulkDeleting}
+                accessibilityLabel={`Delete ${doc.title}`}
+              >
+                {deletingId === doc.id ? (
+                  <ActivityIndicator size="small" color={colors.danger} />
+                ) : (
+                  <Trash2 size={18} color={colors.danger} />
+                )}
+              </TouchableOpacity>
+            </View>
           ))}
         </View>
       </ScrollView>
@@ -256,6 +371,20 @@ const styles = StyleSheet.create({
   },
   uploadTitle: { fontSize: 14, fontWeight: '700', color: colors.ink },
   uploadSub: { fontSize: 12, color: colors.inkSoft, marginTop: 2 },
+  bulkDeleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.dangerPale,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    borderRadius: radius.md,
+    paddingVertical: 10,
+    marginBottom: 20,
+  },
+  bulkDeleteBtnBusy: { opacity: 0.7 },
+  bulkDeleteText: { fontSize: 13, fontWeight: '700', color: colors.danger },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.ink, marginBottom: 12 },
   docList: { gap: 10 },
   docCard: {
@@ -266,6 +395,12 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radius.md,
     padding: 12,
+    gap: 8,
+  },
+  docTouchable: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
   },
   docIcon: {
@@ -279,10 +414,20 @@ const styles = StyleSheet.create({
   docMain: { flex: 1 },
   docTitle: { fontSize: 14, fontWeight: '600', color: colors.ink },
   docSub: { fontSize: 11, color: colors.inkSoft, marginTop: 2 },
+  deleteBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteBtnBusy: { opacity: 0.6 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.full },
   statusReady: { backgroundColor: colors.tealPale },
   statusProc: { backgroundColor: colors.violetPale },
+  statusFailed: { backgroundColor: colors.dangerPale },
   statusText: { fontSize: 11, fontWeight: '700' },
   statusTextReady: { color: colors.tealDark },
   statusTextProc: { color: colors.violet },
+  statusTextFailed: { color: colors.danger },
 });
