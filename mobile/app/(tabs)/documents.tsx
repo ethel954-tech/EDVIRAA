@@ -24,6 +24,23 @@ export default function MobileDocumentsScreen() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [documents, setDocuments] = useState<any[]>([]);
+  const [summarizingId, setSummarizingId] = useState<string | null>(null);
+
+  async function addSummary(doc: any) {
+    if (summarizingId) return;
+    setSummarizingId(doc.id);
+    try {
+      const { error } = await supabase.functions.invoke('backfill-summary', {
+        body: { documentId: doc.id },
+      });
+      if (error) throw new Error(error.message);
+      fetchDocuments();
+    } catch (e: any) {
+      Alert.alert('Could not add summary', e?.message || 'Please try again later.');
+    } finally {
+      setSummarizingId(null);
+    }
+  }
 
   const failedCount = documents.filter((doc) => doc.status === 'failed').length;
 
@@ -37,7 +54,7 @@ export default function MobileDocumentsScreen() {
       if (!user) return;
       const { data } = await supabase
         .from('documents')
-        .select('id, title, status, storage_path, created_at')
+        .select('id, title, status, storage_path, created_at, summary, summary_partial')
         .eq('student_id', user.id)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -251,6 +268,30 @@ export default function MobileDocumentsScreen() {
                   <Text style={styles.docSub}>
                     Status: {doc.status === 'ready' ? 'Ready' : doc.status === 'failed' ? 'Failed' : 'Processing...'}
                   </Text>
+                  {doc.status === 'ready' && doc.summary ? (
+                    <View style={styles.summaryBox}>
+                      <Text style={styles.summaryText}>{doc.summary}</Text>
+                      {doc.summary_partial ? (
+                        <Text style={styles.summaryPartial}>
+                          Based on a sample of this document.
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : null}
+                  {doc.status === 'ready' && !doc.summary ? (
+                    <TouchableOpacity
+                      style={styles.addSummaryBtn}
+                      onPress={() => addSummary(doc)}
+                      disabled={summarizingId === doc.id}
+                      accessibilityLabel={`Add summary for ${doc.title}`}
+                    >
+                      {summarizingId === doc.id ? (
+                        <ActivityIndicator size="small" color={colors.tealDark} />
+                      ) : (
+                        <Text style={styles.addSummaryText}>Add summary</Text>
+                      )}
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
                 <View
                   style={[
@@ -384,6 +425,29 @@ const styles = StyleSheet.create({
   docMain: { flex: 1 },
   docTitle: { fontSize: 14, fontWeight: '600', color: colors.ink },
   docSub: { fontSize: 11, color: colors.inkSoft, marginTop: 2 },
+  summaryBox: {
+    marginTop: 6,
+    backgroundColor: colors.tealPale,
+    borderRadius: 8,
+    padding: 8,
+  },
+  summaryText: { fontSize: 12, color: colors.ink, lineHeight: 16 },
+  summaryPartial: {
+    marginTop: 3,
+    fontSize: 10,
+    fontStyle: 'italic',
+    color: colors.inkSoft,
+  },
+  addSummaryBtn: {
+    marginTop: 6,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.full,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  addSummaryText: { fontSize: 11, fontWeight: '700', color: colors.tealDark },
   deleteBtn: {
     width: 34,
     height: 34,
