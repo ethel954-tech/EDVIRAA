@@ -21,7 +21,6 @@ import {
   Check,
   Lock,
   Users,
-  ChevronRight,
   Sparkles,
   ChevronDown,
 } from 'lucide-react-native';
@@ -32,6 +31,11 @@ export default function MobileDashboardScreen() {
   const [profile, setProfile] = useState<any>(null);
   const [gamification, setGamification] = useState<any>(null);
   const [rooms, setRooms] = useState<any[]>([]);
+  const [roadmapModules, setRoadmapModules] = useState<any[]>([]);
+  const [roadmapProgress, setRoadmapProgress] = useState<{ completed: number; total: number } | null>(null);
+  const [recentActivities, setRecentActivities] = useState<Array<{ id: string; title: string; detail: string | null; createdAt: string }>>([]);
+  const [sessionsThisWeek, setSessionsThisWeek] = useState(0);
+  const [badgeCount, setBadgeCount] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Subject management
@@ -49,19 +53,75 @@ export default function MobileDashboardScreen() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [{ data: prof }, { data: gami }, { data: rmMembers }, subs, activeSub] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', user.id).single(),
-        supabase.from('gamification').select('*').eq('user_id', user.id).maybeSingle(),
-        supabase.from('room_members').select('rooms(*)').eq('user_id', user.id).limit(4),
-        listSubjects().catch(() => []),
-        getActiveSubject().catch(() => null),
+      const weekStart = new Date();
+      weekStart.setHours(0, 0, 0, 0);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+
+      const [
+        { data: prof },
+        { data: gami },
+        { data: rmMembers },
+        subs,
+        activeSub,
+        { data: sessions },
+        { data: quizzes },
+        { count: weeklySessionCount },
+        { count: earnedBadgeCount },
+      ] = await Promise.all([
+        supabase.from('profiles').select('display_name').eq('id', user.id).maybeSingle(),
+        supabase.from('gamification').select('xp, current_streak').eq('user_id', user.id).maybeSingle(),
+        supabase.from('room_members').select('rooms(*)').eq('user_id', user.id),
+        listSubjects(),
+        getActiveSubject(),
+        supabase.from('study_sessions').select('id, summary, started_at, xp_earned').eq('user_id', user.id).order('started_at', { ascending: false }).limit(5),
+        supabase.from('quiz_attempts').select('id, score, created_at, quizzes(title)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
+        supabase.from('study_sessions').select('id', { count: 'exact', head: true }).eq('user_id', user.id).gte('started_at', weekStart.toISOString()),
+        supabase.from('user_badges').select('badge_id', { count: 'exact', head: true }).eq('user_id', user.id),
       ]);
 
       setProfile(prof);
-      setGamification(gami || { xp: 340, current_streak: 6 });
+      setGamification(gami);
       setRooms((rmMembers ?? []).map((m: any) => Array.isArray(m.rooms) ? m.rooms[0] : m.rooms).filter(Boolean));
       setSubjects(subs);
-      setSubject(activeSub || (subs.length > 0 ? subs[0] : { id: 'default', name: 'Biology 101' }));
+      const selectedSubject = activeSub || subs[0] || null;
+      setSubject(selectedSubject);
+      setSessionsThisWeek(weeklySessionCount ?? 0);
+      setBadgeCount(earnedBadgeCount ?? 0);
+
+      const { data: moduleRows } = selectedSubject
+        ? await supabase
+            .from('modules')
+            .select('id, title, order_index, status, topics(id, title, order_index, completed_at)')
+            .eq('subject_id', selectedSubject.id)
+            .order('order_index', { ascending: true })
+        : { data: [] };
+      const sortedModules = (moduleRows ?? []).map((module: any) => ({
+        ...module,
+        topics: [...(module.topics ?? [])].sort((left: any, right: any) => left.order_index - right.order_index),
+      }));
+      setRoadmapModules(sortedModules);
+      const allTopics = sortedModules.flatMap((module: any) => module.topics);
+      setRoadmapProgress(allTopics.length
+        ? { completed: allTopics.filter((topic: any) => topic.completed_at).length, total: allTopics.length }
+        : null);
+
+      setRecentActivities([
+        ...(sessions ?? []).map((session: any) => ({
+          id: `session-${session.id}`,
+          title: session.summary?.trim() || 'Study session',
+          detail: session.xp_earned > 0 ? `${session.xp_earned} XP earned` : null,
+          createdAt: session.started_at,
+        })),
+        ...(quizzes ?? []).map((attempt: any) => {
+          const quiz = Array.isArray(attempt.quizzes) ? attempt.quizzes[0] : attempt.quizzes;
+          return {
+            id: `quiz-${attempt.id}`,
+            title: quiz?.title ?? 'Quiz attempt',
+            detail: `${attempt.score}% score`,
+            createdAt: attempt.created_at,
+          };
+        }),
+      ].sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt)).slice(0, 5));
     } catch {
       // Graceful fallback defaults
     } finally {
@@ -88,6 +148,12 @@ export default function MobileDashboardScreen() {
   }
 
   const userInitial = profile?.display_name ? profile.display_name.charAt(0).toUpperCase() : 'A';
+  const currentModule = roadmapModules.find((module) => module.status !== 'complete') || roadmapModules[0];
+  const completedTopicCount = roadmapProgress?.completed ?? 0;
+  const totalTopicCount = roadmapProgress?.total ?? 0;
+  const roadmapPercent = totalTopicCount
+    ? Math.round((completedTopicCount / totalTopicCount) * 100)
+    : null;
 
   return (
     <View style={styles.outerContainer}>
@@ -116,13 +182,13 @@ export default function MobileDashboardScreen() {
 
         {/* Greeting Banner & Subject Chip */}
         <View style={styles.greetingHeader}>
-          <Text style={styles.greeting}>Good afternoon, {profile?.display_name || 'Student'}</Text>
+          <Text style={styles.greeting}>Welcome back{profile?.display_name ? `, ${profile.display_name}` : ''}</Text>
           <TouchableOpacity
             style={styles.subjectChip}
             onPress={() => setSubjectModalOpen(true)}
           >
             <Text style={styles.subjectChipIcon}>📘</Text>
-            <Text style={styles.subjectChipText}>{subject ? subject.name : 'Biology 101'}</Text>
+            <Text style={styles.subjectChipText}>{subject?.name || 'No subjects yet'}</Text>
             <ChevronDown size={14} color={colors.inkSoft} />
           </TouchableOpacity>
         </View>
@@ -134,14 +200,14 @@ export default function MobileDashboardScreen() {
             onPress={() => router.push('/(tabs)/progress')}
           >
             <Flame size={14} color="#8A5A0F" />
-            <Text style={styles.amberPillText}>{gamification?.current_streak || 6} day streak</Text>
+            <Text style={styles.amberPillText}>{gamification ? `${gamification.current_streak} day streak` : 'Streak unavailable'}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.tealPill}
             onPress={() => router.push('/(tabs)/progress')}
           >
             <Zap size={14} color={colors.tealDark} />
-            <Text style={styles.tealPillText}>{gamification?.xp || 340} XP</Text>
+            <Text style={styles.tealPillText}>{gamification ? `${gamification.xp} XP` : 'XP unavailable'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -149,34 +215,34 @@ export default function MobileDashboardScreen() {
         <View style={styles.heroCard}>
           <View style={styles.cardHeaderRow}>
             <Text style={styles.cardEyebrow}>
-              {subject ? subject.name : 'Biology 101'} · Continue your roadmap
+              {subject?.name || 'No subjects yet'} · Roadmap
             </Text>
           </View>
-          <Text style={styles.cardTitle}>Membrane Transport</Text>
+          <Text style={styles.cardTitle}>{currentModule?.title || (subject ? 'No roadmap yet' : 'No subjects yet')}</Text>
 
           <View style={styles.progressRow}>
             <TouchableOpacity
               style={styles.progressRingBadge}
-              onPress={() => router.push('/lessons/next')}
+              onPress={() => router.push('/(tabs)/roadmap')}
             >
-              <Text style={styles.ringPct}>62%</Text>
-              <Text style={styles.ringSub}>Module 2</Text>
+              <Text style={styles.ringPct}>{roadmapPercent === null ? '—' : `${roadmapPercent}%`}</Text>
+              <Text style={styles.ringSub}>{totalTopicCount ? `${completedTopicCount}/${totalTopicCount} topics` : 'No roadmap'}</Text>
             </TouchableOpacity>
 
             <View style={styles.progressTextCol}>
-              <Text style={styles.progressDesc}>Up next: Cell Membrane Osmosis &amp; Diffusion</Text>
+              <Text style={styles.progressDesc}>{totalTopicCount ? `${completedTopicCount} of ${totalTopicCount} topics complete` : 'No roadmap progress yet'}</Text>
               <View style={styles.heroActionBtns}>
                 <TouchableOpacity
                   style={styles.btnPrimary}
-                  onPress={() => router.push('/lessons/next')}
+                  onPress={() => router.push('/(tabs)/roadmap')}
                 >
-                  <Text style={styles.btnPrimaryText}>Open lesson</Text>
+                  <Text style={styles.btnPrimaryText}>Open roadmap</Text>
                   <ArrowRight size={15} color="#fff" />
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={styles.btnSecondary}
-                  onPress={() => router.push({ pathname: '/(tabs)/tutor', params: { query: `Explain Membrane Transport for ${subject?.name || 'Biology 101'}` } })}
+                  onPress={() => router.push({ pathname: '/(tabs)/tutor', params: { query: `Help me study ${currentModule?.title || subject?.name || 'my subject'}` } })}
                 >
                   <Sparkles size={14} color={colors.violet} />
                   <Text style={styles.btnSecondaryText}>Ask Tutor</Text>
@@ -192,22 +258,22 @@ export default function MobileDashboardScreen() {
             style={styles.statCard}
             onPress={() => router.push('/(tabs)/progress')}
           >
-            <Text style={styles.statNum}>12</Text>
+            <Text style={styles.statNum}>{sessionsThisWeek}</Text>
             <Text style={styles.statLabel}>Sessions this week</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.statCard}
             onPress={() => router.push('/(tabs)/progress')}
           >
-            <Text style={styles.statNum}>4</Text>
+            <Text style={styles.statNum}>{badgeCount}</Text>
             <Text style={styles.statLabel}>Badges earned</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.statCard}
             onPress={() => router.push('/(tabs)/progress')}
           >
-            <Text style={styles.statNum}>87%</Text>
-            <Text style={styles.statLabel}>Quiz accuracy</Text>
+            <Text style={styles.statNum}>{completedTopicCount}</Text>
+            <Text style={styles.statLabel}>Topics completed</Text>
           </TouchableOpacity>
         </View>
 
@@ -220,21 +286,17 @@ export default function MobileDashboardScreen() {
             </TouchableOpacity>
           </View>
           {rooms.length === 0 ? (
-            <TouchableOpacity
-              style={styles.roomRowViolet}
-              onPress={() => router.push('/(tabs)/rooms')}
-            >
-              <View>
-                <Text style={styles.roomName}>Chem exam prep</Text>
-                <Text style={styles.roomSub}>3 members · live now</Text>
-              </View>
-              <View style={styles.liveDot} />
-            </TouchableOpacity>
+            <View>
+              <Text style={styles.roomSub}>No rooms yet</Text>
+              <TouchableOpacity onPress={() => router.push('/(tabs)/rooms')}>
+                <Text style={styles.viewAllText}>Browse rooms</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             rooms.map((r, i) => (
               <TouchableOpacity
                 key={r.id || i}
-                style={i % 2 === 0 ? styles.roomRowViolet : styles.roomRowTeal}
+                  style={i % 2 === 0 ? styles.roomRowViolet : styles.roomRowTeal}
                 onPress={() => router.push(`/(tabs)/rooms/${r.id}`)}
               >
                 <View>
@@ -252,44 +314,43 @@ export default function MobileDashboardScreen() {
         {/* Roadmap Summary Card */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionHeader}>{subject ? subject.name : 'Biology 101'} Roadmap</Text>
+            <Text style={styles.sectionHeader}>{subject ? `${subject.name} Roadmap` : 'Your roadmap'}</Text>
             <TouchableOpacity onPress={() => router.push('/(tabs)/roadmap')}>
               <Text style={styles.viewAllText}>Full map</Text>
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.modRow} onPress={() => router.push('/(tabs)/roadmap')}>
-            <View style={styles.badgeDone}>
-              <Check size={14} color={colors.tealDark} />
-            </View>
-            <View style={styles.modTextCol}>
-              <Text style={styles.modTitle}>Intro to Cells</Text>
-              <Text style={styles.modSub}>Module 1 · Complete</Text>
-            </View>
-            <Text style={styles.modPct}>100%</Text>
-          </TouchableOpacity>
+          {roadmapModules.length ? roadmapModules.slice(0, 3).map((module: any) => {
+            const done = module.topics.filter((topic: any) => topic.completed_at).length;
+            const total = module.topics.length;
+            return (
+              <TouchableOpacity key={module.id} style={styles.modRow} onPress={() => router.push('/(tabs)/roadmap')}>
+                <View style={module.status === 'complete' ? styles.badgeDone : module.status === 'locked' ? styles.badgeUpNext : styles.badgeProgress}>
+                  {module.status === 'complete' ? <Check size={14} color={colors.tealDark} /> : module.status === 'locked' ? <Lock size={12} color={colors.violet} /> : <Text style={styles.badgeProgressDot}>•</Text>}
+                </View>
+                <View style={styles.modTextCol}>
+                  <Text style={styles.modTitle}>{module.title}</Text>
+                  <Text style={styles.modSub}>{done} of {total} topics complete</Text>
+                </View>
+                <Text style={styles.modPct}>{total ? `${Math.round((done / total) * 100)}%` : '—'}</Text>
+              </TouchableOpacity>
+            );
+          }) : (
+            <Text style={styles.roomSub}>{subject ? 'No roadmap yet' : 'No subjects yet'}</Text>
+          )}
+        </View>
 
-          <TouchableOpacity style={styles.modRow} onPress={() => router.push('/(tabs)/roadmap')}>
-            <View style={styles.badgeProgress}>
-              <Text style={styles.badgeProgressDot}>●</Text>
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionHeader}>Recent activity</Text>
+          {recentActivities.length ? recentActivities.map((activity) => (
+            <View key={activity.id} style={styles.modRow}>
+              <View style={styles.modTextCol}>
+                <Text style={styles.modTitle}>{activity.title}</Text>
+                <Text style={styles.modSub}>{new Date(activity.createdAt).toLocaleDateString()}</Text>
+              </View>
+              {activity.detail ? <Text style={styles.modSub}>{activity.detail}</Text> : null}
             </View>
-            <View style={styles.modTextCol}>
-              <Text style={styles.modTitle}>Cell Structure</Text>
-              <Text style={styles.modSub}>Module 2 · In progress</Text>
-            </View>
-            <Text style={[styles.modPct, { color: colors.violet }]}>62%</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.modRow} onPress={() => router.push('/lessons/next')}>
-            <View style={styles.badgeUpNext}>
-              <Lock size={12} color={colors.violet} />
-            </View>
-            <View style={styles.modTextCol}>
-              <Text style={styles.modTitle}>Membrane Transport</Text>
-              <Text style={styles.modSub}>Module 3 · Up next — tap to open</Text>
-            </View>
-            <ChevronRight size={18} color={colors.violet} />
-          </TouchableOpacity>
+          )) : <Text style={styles.roomSub}>No recent activity</Text>}
         </View>
       </ScrollView>
 
@@ -312,13 +373,7 @@ export default function MobileDashboardScreen() {
           <View style={styles.subjectModal}>
             <Text style={styles.modalTitle}>Select Active Subject</Text>
             {subjects.length === 0 ? (
-              <TouchableOpacity
-                style={styles.subjectRowActive}
-                onPress={() => setSubjectModalOpen(false)}
-              >
-                <Text style={styles.subjectRowText}>📘 Biology 101</Text>
-                <Check size={16} color={colors.tealDark} />
-              </TouchableOpacity>
+              <Text style={styles.roomSub}>No subjects yet</Text>
             ) : (
               subjects.map((s) => (
                 <TouchableOpacity

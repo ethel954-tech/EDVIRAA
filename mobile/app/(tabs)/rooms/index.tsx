@@ -48,10 +48,7 @@ export default function MobileRoomsScreen() {
 
       setRooms(list);
     } catch {
-      setRooms([
-        { id: 'r1', name: 'Chem exam prep', type: 'peer' },
-        { id: 'r2', name: 'Bio 101 — Mr. Okafor', type: 'teacher' },
-      ]);
+      setRooms([]);
     } finally {
       setLoading(false);
     }
