@@ -1,4 +1,6 @@
 /// <reference path="../deno-types.d.ts" />
+// @ts-ignore: Deno npm: specifier — resolved by the edge runtime, not tsc.
+import { createClient } from "npm:@supabase/supabase-js@2";
 // ============================================================================
 // speech-transcribe — voice note → text for the AI Tutor (Task 24)
 //
@@ -22,6 +24,15 @@ interface TranscribeRequest {
   mime_type?: string;
 }
 
+const MAX_BODY_BYTES = 5 * 1024 * 1024;
+
+class RequestBodyTooLargeError extends Error {
+  constructor() {
+    super("Audio upload exceeds the 5 MB request limit.");
+    this.name = "RequestBodyTooLargeError";
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -30,6 +41,11 @@ Deno.serve(async (req: Request) => {
   try {
     if (req.method !== "POST") {
       return json({ error: "Method not allowed" }, 405);
+    }
+
+    const contentLength = Number(req.headers.get("content-length"));
+    if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
+      return json({ error: "Audio upload exceeds the 5 MB request limit." }, 413);
     }
 
     const authHeader = req.headers.get("Authorization") ?? "";
@@ -43,9 +59,24 @@ Deno.serve(async (req: Request) => {
       return json({ error: "DASHSCOPE_API_KEY is not configured" }, 500);
     }
 
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      {
+        global: { headers: { Authorization: authHeader } },
+        auth: { persistSession: false },
+      },
+    );
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return json({ error: "Invalid or expired session" }, 401);
+    }
+
     // The mobile client sends JSON with the recording as base64 (RN FormData
     // multipart is unreliable across platforms, so base64 is simplest).
-    const { audio_base64, mime_type } = (await req.json()) as TranscribeRequest;
+    const { audio_base64, mime_type } = await readJsonWithLimit(req);
     if (!audio_base64) {
       return json({ error: "audio_base64 is required" }, 400);
     }
@@ -108,10 +139,36 @@ Deno.serve(async (req: Request) => {
     console.error("[speech-transcribe] transcription failed:", err);
     return json(
       { error: err instanceof Error ? err.message : "Transcription failed." },
-      500,
+      err instanceof RequestBodyTooLargeError ? 413 : 500,
     );
   }
 });
+
+async function readJsonWithLimit(req: Request): Promise<TranscribeRequest> {
+  const reader = req.body?.getReader();
+  if (!reader) return JSON.parse(await req.text()) as TranscribeRequest;
+
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    totalBytes += value.byteLength;
+    if (totalBytes > MAX_BODY_BYTES) {
+      await reader.cancel();
+      throw new RequestBodyTooLargeError();
+    }
+    chunks.push(value);
+  }
+
+  const bytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return JSON.parse(new TextDecoder().decode(bytes)) as TranscribeRequest;
+}
 
 function base64ToBytes(b64: string): Uint8Array {
   const clean = b64.replace(/^data:[^;]+;base64,/, "").replace(/=+$/, "");

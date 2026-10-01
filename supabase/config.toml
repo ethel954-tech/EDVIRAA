@@ -4,9 +4,8 @@
 # override [functions.global]) so a future `supabase config push`/deploy
 # change can never silently disable auth checks at the gateway.
 #
-# speech-transcribe is deliberately left to its own in-function checks (it
-# only validates the Authorization header today) — it must not be loosened
-# or tightened from here while its provider question is open.
+# speech-transcribe also validates the caller in-function before processing
+# audio; its provider remains configured by the function implementation.
 project_id = "edviraa"
 
 [functions.process-document]
@@ -25,4 +24,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.suggest-exam-feedback]
+verify_jwt = true
+
+[functions.speech-transcribe]
 verify_jwt = true
