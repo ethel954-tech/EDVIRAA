@@ -10,7 +10,7 @@ Differentiator: unlike typical note-digitizing tools, this focuses on making not
 Shared backend (single source of truth for both apps):
 
 Supabase: PostgreSQL, Auth, Storage, Realtime, pgvector (embeddings)
-Qwen AI (free tier) for AI tutor responses and content generation, called through a shared API layer (see Section 6) so both apps hit the same logic
+LLM API (OpenAI-compatible endpoint; currently Gemini via LLM_BASE_URL) for AI tutor responses and content generation, called through a shared API layer (see Section 6) so both apps hit the same logic
 Web:
 
 Next.js (App Router), TypeScript, Tailwind CSS
@@ -63,8 +63,8 @@ Enable Row Level Security: users read/write only their own rows; room-scoped pol
 6. Shared API/Logic Layer
 Build the AI calls (tutor response, quiz/flashcard generation, module auto-splitting, RAG retrieval) as Supabase Edge Functions (or a small separate Node API) rather than duplicating logic in both the Next.js app and the Expo app. Both frontends call the same endpoints. This also means:
 
-Swapping Qwen for a paid provider later only requires changing the edge function, not both apps
-RAG retrieval (embed query → pgvector similarity search → return chunks → prompt Qwen) lives here once, shared by web and mobile
+Swapping AI providers later only requires changing the edge function, not both apps
+RAG retrieval (embed query → pgvector similarity search → return chunks → prompt the model) lives here once, shared by web and mobile
 7. Web App Structure (Next.js)
 Pages
 /auth — sign up (role lock warning), log in
