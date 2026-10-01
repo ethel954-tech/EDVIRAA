@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CloudUpload, FileText, LoaderCircle, X } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { uploadPdfWithProgress, validatePdf } from "@/lib/upload";
+import { uploadAndProcessPdf } from "@/lib/document-upload";
 import { cn } from "@/lib/utils";
 
 type SubjectOption = { id: string; name: string };
@@ -49,104 +48,29 @@ export function UploadZone({ subjects }: { subjects: SubjectOption[] }) {
     const files = Array.from(fileList ?? []);
     if (files.length === 0) return;
 
-    const supabase = createClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const token = session?.access_token;
-    const user = session?.user;
-    if (!token || !user) {
-      setError("Your session expired. Please log in again.");
-      return;
-    }
-
     for (const file of files) {
-      const validationError = validatePdf(file);
-      if (validationError) {
-        setError(validationError);
-        continue;
-      }
-
       const key = `${file.name}-${Date.now()}-${Math.random()}`;
       setUploads((prev) => [...prev, { key, name: file.name, percent: 0 }]);
 
-      let documentId: string | null = null;
-      let uploaded = false;
+      const result = await uploadAndProcessPdf({
+        file,
+        subjectId,
+        onProgress: (percent) =>
+          setUploads((prev) =>
+            prev.map((u) => (u.key === key ? { ...u, percent } : u)),
+          ),
+      });
 
-      try {
-        const { data: inserted, error: insertError } = await supabase
-          .from("documents")
-          .insert({
-            student_id: user.id,
-            subject_id: subjectId,
-            title: file.name.replace(/\.pdf$/i, ""),
-            storage_path: "pending",
-            status: "processing" as const,
-          })
-          .select("id")
-          .single();
-
-        if (insertError || !inserted) {
-          throw new Error(
-            insertError?.message ?? "Could not create the document record.",
-          );
-        }
-        documentId = inserted.id;
-
-        const path = `${user.id}/${documentId}.pdf`;
-        await uploadPdfWithProgress({
-          file,
-          path,
-          token,
-          onProgress: (percent) =>
-            setUploads((prev) =>
-              prev.map((u) => (u.key === key ? { ...u, percent } : u)),
-            ),
-        });
-
-        const { error: updateError } = await supabase
-          .from("documents")
-          .update({ storage_path: path })
-          .eq("id", documentId);
-
-        if (updateError) throw new Error(updateError.message);
-        uploaded = true;
-
-        // Fire-and-forget, but not failure-and-forget: if the invoke itself
-        // fails (offline, 401, edge down) nothing would flip the row out of
-        // "processing" and the UI would spin forever. Mark it failed so the
-        // user sees the truth and can retry.
-        const { error: invokeError } = await supabase.functions.invoke(
-          "process-document",
-          { body: { documentId } },
-        );
-        if (invokeError) {
-          await supabase
-            .from("documents")
-            .update({ status: "failed" as const })
-            .eq("id", documentId);
-          throw new Error(
-            `Could not start processing: ${invokeError.message}`,
-          );
-        }
-
+      if (result.ok) {
         setUploads((prev) =>
           prev.map((u) => (u.key === key ? { ...u, done: true } : u)),
         );
-      } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Upload failed. Please try again.";
+      } else {
         setUploads((prev) =>
-          prev.map((u) => (u.key === key ? { ...u, error: message } : u)),
+          prev.map((u) =>
+            u.key === key ? { ...u, error: result.error } : u,
+          ),
         );
-        // Only clean up the DB row when the upload itself failed. Once the
-        // file is stored, the row (and any "failed" status we just set) is
-        // the user's retry handle — deleting it would orphan the object.
-        if (documentId && !uploaded) {
-          void supabase.from("documents").delete().eq("id", documentId);
-        }
       }
     }
 
