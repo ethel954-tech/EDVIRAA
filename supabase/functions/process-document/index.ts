@@ -21,6 +21,12 @@ import { extractTextFromPdf, PdfPageLimitError } from "../_shared/pdf.ts";
 // @ts-ignore: Deno npm: specifier — resolved by the edge runtime, not tsc.
 import { createQwenEmbedder, EMBEDDING_DIMENSIONS } from "../_shared/qwen.ts";
 import { checkAiQuota } from "../_shared/ai-quota.ts";
+import {
+  buildSummaryMessages,
+  extractSummaryText,
+  samplePassages,
+} from "../_shared/summary.ts";
+import { chatCompletion } from "../_shared/qwen.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,6 +40,11 @@ const corsHeaders = {
 const DEFAULT_MAX_PDF_PAGES = 8;
 const MAX_EXTRACTED_CHARS = 150_000;
 const MAX_CHUNKS = 120;
+
+// Summary call budget (approved design §2): own short timeout, and skip the
+// call entirely when the request has already consumed most of its wall clock.
+const SUMMARY_TIMEOUT_MS = 15_000;
+const SUMMARY_BUDGET_MS = 60_000;
 
 function getMaxPdfPages(): number {
   const configured = Number(Deno.env.get("MAX_PDF_PAGES"));
@@ -53,6 +64,7 @@ Deno.serve(async (req: Request) => {
 
   let documentId: string | undefined;
   let supabaseAdmin: SupabaseClient | null = null;
+  const requestStartedAt = performance.now();
 
   try {
     const { documentId: docId } = (await req.json()) as ProcessRequest;
@@ -196,6 +208,47 @@ Deno.serve(async (req: Request) => {
 
     if (insertError) {
       throw new Error(`Could not store chunks: ${insertError.message}`);
+    }
+
+    // -----------------------------------------------------------------
+    // Summary (Phase 4 item 2): one extra chat call. A failure here is
+    // NEVER an ingestion failure — the document must still become ready.
+    // Skipped when the wall-clock budget is already spent.
+    // -----------------------------------------------------------------
+    if (performance.now() - requestStartedAt > SUMMARY_BUDGET_MS) {
+      console.info("[process-document] summary skipped: time budget");
+    } else {
+      try {
+        const sample = samplePassages(passages);
+        const completion = await chatCompletion(buildSummaryMessages(sample), {
+          maxTokens: 400,
+          timeoutMs: SUMMARY_TIMEOUT_MS,
+        });
+        const summaryText = extractSummaryText(completion.content);
+        if (summaryText) {
+          const { error: summaryError } = await supabaseAdmin
+            .from("documents")
+            .update({
+              summary: summaryText,
+              summary_status: "ready",
+              summary_partial: sample.partial,
+              summary_created_at: new Date().toISOString(),
+            })
+            .eq("id", document.id);
+          if (summaryError) {
+            // Leave summary NULL — retryable via backfill-summary.
+            console.error("[process-document] summary write failed:", summaryError.message);
+          }
+        } else {
+          console.error("[process-document] summary generation failed: empty content");
+        }
+      } catch (err) {
+        // 429, timeout, malformed response — log and continue.
+        console.error(
+          "[process-document] summary generation failed:",
+          err instanceof Error ? err.message : err,
+        );
+      }
     }
 
     // status flips to 'ready' via the ownership-checked SECURITY DEFINER RPC
