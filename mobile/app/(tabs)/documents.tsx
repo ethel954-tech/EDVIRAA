@@ -9,10 +9,10 @@ import {
   Alert,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
 import * as Linking from 'expo-linking';
 import { supabase } from '../../src/lib/supabase';
-import { getActiveSubject } from '../../src/lib/subjects';
+import { getActiveSubject, type Subject } from '../../src/lib/subjects';
+import { uploadAndProcessPdf, pollDocumentStatus } from '../../src/lib/documentUpload';
 import { colors, radius } from '../../src/lib/theme';
 import { AppDrawer } from '../../src/components/Drawer';
 import { Menu, UploadCloud, FileText } from 'lucide-react-native';
@@ -54,49 +54,28 @@ export default function MobileDocumentsScreen() {
       const file = result.assets[0];
       setUploading(true);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        Alert.alert('Session expired', 'Please log in again.');
-        return;
-      }
-
-      const base64Data = await FileSystem.readAsStringAsync(file.uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-
       const activeSubject = await getActiveSubject();
-      if (!activeSubject) {
-        Alert.alert('No subject selected', 'Pick a subject first so this PDF lands where the tutor can find it.');
+
+      const outcome = await uploadAndProcessPdf({
+        uri: file.uri,
+        name: file.name || 'document.pdf',
+        size: file.size ?? 0,
+        mimeType: file.mimeType,
+        resolveSubject: async () => activeSubject as Subject | null,
+      });
+
+      if (!outcome.ok) {
+        Alert.alert('Upload Error', outcome.error);
         return;
       }
-
-      const documentId = Date.now().toString();
-      const storagePath = `${user.id}/${documentId}.pdf`;
-
-      const { error: uploadErr } = await supabase.storage
-        .from('documents')
-        .upload(storagePath, decodeBase64(base64Data), {
-          contentType: 'application/pdf',
-          upsert: true,
-        });
-      if (uploadErr) throw new Error(uploadErr.message);
-
-      const { error: insertErr } = await supabase.from('documents').insert({
-        student_id: user.id,
-        subject_id: activeSubject.id,
-        title: file.name.replace(/\.pdf$/i, ''),
-        storage_path: storagePath,
-        status: 'processing',
-      });
-      if (insertErr) throw new Error(insertErr.message);
-
-      setDocuments((prev) => [
-        { id: documentId, title: file.name, status: 'processing', created_at: new Date().toISOString() },
-        ...prev,
-      ]);
 
       fetchDocuments();
       Alert.alert('Upload Started', 'Your document is being processed by the AI pipeline.');
+
+      // Flip the row's badge when processing finishes (best effort).
+      void pollDocumentStatus(outcome.documentId, () => false).then((final) => {
+        if (final === 'ready' || final === 'failed') fetchDocuments();
+      });
     } catch (e: any) {
       Alert.alert('Upload Error', e.message || 'Could not upload PDF.');
     } finally {
@@ -121,26 +100,6 @@ export default function MobileDocumentsScreen() {
     } catch (e: any) {
       Alert.alert('Could not open', e?.message || 'Unexpected error opening document.');
     }
-  }
-
-  function decodeBase64(base64: string): Uint8Array {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-    const str = base64.replace(/=+$/, '');
-    const bytes = new Uint8Array(Math.floor((str.length * 3) / 4));
-    let u = 0;
-    for (let i = 0; i < str.length; i += 4) {
-      const e1 = chars.indexOf(str.charAt(i));
-      const e2 = chars.indexOf(str.charAt(i + 1));
-      const e3 = chars.indexOf(str.charAt(i + 2));
-      const e4 = chars.indexOf(str.charAt(i + 3));
-      const c1 = (e1 << 2) | (e2 >> 4);
-      const c2 = ((e2 & 15) << 4) | (e3 >> 2);
-      const c3 = ((e3 & 3) << 6) | e4;
-      bytes[u++] = c1;
-      if (e3 !== 64 && e3 !== -1) bytes[u++] = c2;
-      if (e4 !== 64 && e4 !== -1) bytes[u++] = c3;
-    }
-    return bytes.subarray(0, u);
   }
 
   return (

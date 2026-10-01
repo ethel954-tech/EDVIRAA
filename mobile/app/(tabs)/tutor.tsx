@@ -19,6 +19,8 @@ import * as Speech from 'expo-speech';
 import * as FileSystem from 'expo-file-system';
 import { supabase } from '../../src/lib/supabase';
 import { getActiveSubject, setActiveSubject, listSubjects, type Subject } from '../../src/lib/subjects';
+import { uploadAndProcessPdf, pollDocumentStatus } from '../../src/lib/documentUpload';
+import * as DocumentPicker from 'expo-document-picker';
 import { colors, radius } from '../../src/lib/theme';
 import { AppDrawer } from '../../src/components/Drawer';
 import {
@@ -31,6 +33,9 @@ import {
   FileText,
   ChevronDown,
   Check,
+  Paperclip,
+  Camera,
+  X,
 } from 'lucide-react-native';
 
 const SUPABASE_URL =
@@ -44,6 +49,15 @@ type Message = {
   content: string;
   sources?: { documentTitle: string }[];
   pending?: boolean;
+};
+
+type AttachmentChip = {
+  key: string;
+  name: string;
+  documentId: string | null;
+  status: 'uploading' | 'processing' | 'ready' | 'failed';
+  detail: string; // percent while uploading, "Processing…" while queued
+  error?: string;
 };
 
 const QUICK_ACTIONS = [
@@ -70,6 +84,11 @@ export default function MobileTutorScreen() {
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
+
+  const [attachMenuOpen, setAttachMenuOpen] = useState(false);
+  const [chips, setChips] = useState<AttachmentChip[]>([]);
+  // Survives chip removal without re-triggering polls.
+  const cancelledChipsRef = useRef<Set<string>>(new Set());
 
   // Server-side conversation id: sent back with every message so the tutor
   // resumes this conversation (history + grounding) instead of starting a
@@ -199,6 +218,76 @@ export default function MobileTutorScreen() {
     } finally {
       setBusy(false);
     }
+  }
+
+  function updateChip(key: string, patch: Partial<AttachmentChip>) {
+    setChips((prev) =>
+      prev.map((c) => (c.key === key ? { ...c, ...patch } : c)),
+    );
+  }
+
+  async function attachPdf() {
+    setAttachMenuOpen(false);
+    const result = await DocumentPicker.getDocumentAsync({
+      type: 'application/pdf',
+      copyToCacheDirectory: true,
+    });
+    if (result.canceled || !result.assets || result.assets.length === 0) return;
+    const file = result.assets[0];
+
+    const key = `${file.name ?? 'document.pdf'}-${Date.now()}-${Math.random()}`;
+    setChips((prev) => [
+      ...prev,
+      { key, name: file.name ?? 'document.pdf', documentId: null, status: 'uploading', detail: '0%' },
+    ]);
+
+    const outcome = await uploadAndProcessPdf({
+      uri: file.uri,
+      name: file.name ?? 'document.pdf',
+      size: file.size ?? 0,
+      mimeType: file.mimeType,
+      // Resolve the subject at pick time, mirroring how sends resolve it.
+      resolveSubject: async () => {
+        if (subject) return subject;
+        const active = await getActiveSubject();
+        return active;
+      },
+    });
+
+    if (cancelledChipsRef.current.has(key)) return;
+
+    if (!outcome.ok) {
+      updateChip(key, { status: 'failed', error: outcome.error });
+      return;
+    }
+
+    updateChip(key, {
+      documentId: outcome.documentId,
+      status: 'processing',
+      detail: 'Processing…',
+    });
+
+    // The retrieval layer searches the subject's documents, so once the
+    // row flips to "ready" the tutor can use it — nothing else to wire.
+    void pollDocumentStatus(outcome.documentId, () =>
+      cancelledChipsRef.current.has(key),
+    ).then((final) => {
+      if (cancelledChipsRef.current.has(key)) return;
+      if (final === 'ready') {
+        updateChip(key, { status: 'ready', detail: 'Ready' });
+      } else if (final === 'failed') {
+        updateChip(key, { status: 'failed', error: 'Processing failed — try again from Documents.' });
+      } else {
+        updateChip(key, { status: 'failed', error: 'Still processing — check the Documents tab.' });
+      }
+    });
+  }
+
+  function removeChip(key: string) {
+    // Detach from the chat only — the document itself (and its chunks) stay;
+    // the Documents tab is the place to manage or delete files.
+    cancelledChipsRef.current.add(key);
+    setChips((prev) => prev.filter((c) => c.key !== key));
   }
 
   // Voice recording using expo-av
@@ -410,6 +499,64 @@ export default function MobileTutorScreen() {
           ))}
         </ScrollView>
 
+        {/* Attachment Chips */}
+        {chips.length > 0 ? (
+          <View style={styles.chipsWrap}>
+            {chips.map((chip) => (
+              <View
+                key={chip.key}
+                style={[styles.chipPill, chip.status === 'failed' && styles.chipPillFailed]}
+              >
+                <FileText size={13} color={chip.status === 'failed' ? colors.danger : colors.teal} />
+                <Text style={styles.chipName} numberOfLines={1}>
+                  {chip.name}
+                </Text>
+                <Text
+                  style={[
+                    styles.chipStatus,
+                    chip.status === 'ready' && { color: colors.tealDark },
+                    chip.status === 'failed' && { color: colors.danger },
+                  ]}
+                >
+                  {chip.error ?? chip.detail}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => removeChip(chip.key)}
+                  accessibilityLabel={`Remove ${chip.name} from the chat`}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <X size={12} color={colors.inkSoft} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {/* Attach Menu */}
+        {attachMenuOpen ? (
+          <View style={styles.attachMenu}>
+            <TouchableOpacity
+              style={styles.attachMenuItem}
+              onPress={attachPdf}
+            >
+              <FileText size={16} color={colors.teal} />
+              <Text style={styles.attachMenuItemText}>Add files or photos</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.attachMenuItem}
+              disabled
+              onPress={() => {
+                Alert.alert('Coming soon', 'Photo and screenshot attachments are not available yet.');
+              }}
+            >
+              <Camera size={16} color={colors.inkSoft} />
+              <Text style={[styles.attachMenuItemText, { color: colors.inkSoft, opacity: 0.6 }]}>
+                Take a photo/screenshot — coming soon
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
         {/* Main Composer Box */}
         <View style={styles.composerBox}>
           <TextInput
@@ -421,6 +568,14 @@ export default function MobileTutorScreen() {
             onSubmitEditing={() => handleSend(input)}
           />
           <View style={styles.crowRight}>
+            {/* Attach menu: PDFs only in Phase 1; images come later. */}
+            <TouchableOpacity
+              style={styles.iconBtnAttach}
+              onPress={() => setAttachMenuOpen((v) => !v)}
+              accessibilityLabel="Attach a document"
+            >
+              <Paperclip size={16} color={colors.violet} />
+            </TouchableOpacity>
             {/* Mic temporarily hidden: the transcription backend is being
                 migrated off DashScope and is not reachable right now. */}
             {false && (
@@ -632,6 +787,69 @@ const styles = StyleSheet.create({
   },
   chipsRow: {
     marginBottom: 10,
+  },
+  chipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  chipPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: '100%',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.full,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  chipPillFailed: {
+    borderColor: colors.dangerPale,
+    backgroundColor: colors.dangerPale,
+  },
+  chipName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.ink,
+    maxWidth: 140,
+  },
+  chipStatus: {
+    fontSize: 11,
+    color: colors.inkSoft,
+  },
+  attachMenu: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: 4,
+  },
+  attachMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: radius.sm,
+  },
+  attachMenuItemText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.ink,
+  },
+  iconBtnAttach: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.violetPale,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   chip: {
     backgroundColor: colors.surface,

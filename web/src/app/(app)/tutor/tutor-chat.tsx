@@ -7,16 +7,23 @@ import {
   BookOpen,
   FileText,
   ListChecks,
+  LoaderCircle,
   MessagesSquare,
   Mic,
+  Paperclip,
   Plus,
   Send,
   Sparkles,
   Square,
   UserRound,
   Volume2,
+  X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import {
+  pollDocumentStatus,
+  uploadAndProcessPdf,
+} from "@/lib/document-upload";
 import {
   dictationSupported,
   readAloudSupported,
@@ -45,6 +52,16 @@ type ChatUIMessage = {
   sources?: SourceRef[];
   contextUsed?: boolean;
   pending?: boolean;
+};
+
+type AttachmentChip = {
+  key: string;
+  file: File;
+  documentId: string | null;
+  /** uploading | processing | ready | failed | removed */
+  status: "uploading" | "processing" | "ready" | "failed";
+  detail: string; // percent while uploading, "Processing…" while queued
+  error?: string;
 };
 
 /** Quick-action chips (spec: shown above the input). */
@@ -89,6 +106,13 @@ export function TutorChat({
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const [speechReady, setSpeechReady] = useState(false);
 
+  const [attachMenuOpen, setAttachMenuOpen] = useState(false);
+  const [attachError, setAttachError] = useState<string | null>(null);
+  const [chips, setChips] = useState<AttachmentChip[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Survives chip removal/unmount without re-triggering effects.
+  const cancelledChipsRef = useRef<Set<string>>(new Set());
+
   const stopMicRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -132,6 +156,95 @@ export function TutorChat({
     }
     const started = speak(m.content, () => setSpeakingId(null));
     setSpeakingId(started ? m.id : null);
+  }
+
+  function updateChip(key: string, patch: Partial<AttachmentChip>) {
+    setChips((prev) =>
+      prev.map((c) => (c.key === key ? { ...c, ...patch } : c)),
+    );
+  }
+
+  async function attachFiles(fileList: FileList | null) {
+    setAttachMenuOpen(false);
+    setAttachError(null);
+    const files = Array.from(fileList ?? []).filter(Boolean);
+    if (files.length === 0) return;
+
+    if (!activeSubjectId && !activeConversation) {
+      setAttachError(
+        "Pick a subject first — attachments are filed under the active subject.",
+      );
+      return;
+    }
+    const subjectId = activeSubjectId;
+    if (!subjectId) {
+      setAttachError(
+        "Attachments need a subject. Start a new chat and pick one.",
+      );
+      return;
+    }
+
+    for (const file of files) {
+      const key = `${file.name}-${Date.now()}-${Math.random()}`;
+      setChips((prev) => [
+        ...prev,
+        {
+          key,
+          file,
+          documentId: null,
+          status: "uploading",
+          detail: "0%",
+        },
+      ]);
+
+      const result = await uploadAndProcessPdf({
+        file,
+        subjectId,
+        onProgress: (percent) =>
+          updateChip(key, { detail: `${percent}%` }),
+      });
+
+      if (cancelledChipsRef.current.has(key)) continue;
+
+      if (!result.ok) {
+        updateChip(key, { status: "failed", error: result.error });
+        continue;
+      }
+
+      updateChip(key, {
+        documentId: result.documentId,
+        status: "processing",
+        detail: "Processing…",
+      });
+
+      // The retrieval layer searches the subject's documents, so once the
+      // row flips to "ready" the tutor can use it — nothing else to wire.
+      void pollDocumentStatus(result.documentId, () =>
+        cancelledChipsRef.current.has(key),
+      ).then((final) => {
+        if (cancelledChipsRef.current.has(key)) return;
+        if (final === "ready") {
+          updateChip(key, { status: "ready", detail: "Ready" });
+        } else if (final === "failed") {
+          updateChip(key, {
+            status: "failed",
+            error: "Processing failed — try re-uploading from Documents.",
+          });
+        } else {
+          updateChip(key, {
+            status: "failed",
+            error: "Still processing — check the Documents page.",
+          });
+        }
+      });
+    }
+  }
+
+  function removeChip(key: string) {
+    // Detach from the chat only — the document itself (and its chunks) stay;
+    // the Documents page is the place to manage or delete files.
+    cancelledChipsRef.current.add(key);
+    setChips((prev) => prev.filter((c) => c.key !== key));
   }
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -450,6 +563,77 @@ export function TutorChat({
               {voiceError}
             </p>
           ) : null}
+          {attachError ? (
+            <p role="alert" className="mb-2 rounded-[8px] bg-red-50 px-3 py-1.5 text-xs text-red-600">
+              {attachError}
+            </p>
+          ) : null}
+
+          {chips.length > 0 ? (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {chips.map((chip) => (
+                <span
+                  key={chip.key}
+                  className={cn(
+                    "flex max-w-[260px] items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs",
+                    chip.status === "failed"
+                      ? "border-red-200 bg-red-50 text-red-600"
+                      : "border-[var(--border)] bg-[var(--surface)] text-[var(--ink-soft)]",
+                  )}
+                >
+                  {chip.status === "uploading" || chip.status === "processing" ? (
+                    <LoaderCircle className="h-3.5 w-3.5 shrink-0 animate-spin text-[var(--teal)]" />
+                  ) : (
+                    <FileText className="h-3.5 w-3.5 shrink-0 text-[var(--teal)]" />
+                  )}
+                  <span className="truncate font-semibold">{chip.file.name}</span>
+                  <span
+                    className={cn(
+                      "shrink-0 text-[11px]",
+                      chip.status === "ready" && "font-semibold text-[var(--teal-dark)]",
+                    )}
+                  >
+                    {chip.error ?? chip.detail}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeChip(chip.key)}
+                    aria-label={`Remove ${chip.file.name} from the chat`}
+                    className="shrink-0 rounded-full p-0.5 hover:bg-[var(--bg)]"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : null}
+
+          {attachMenuOpen ? (
+            <div
+              role="menu"
+              className="relative z-10 mb-2 w-64 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-md"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex w-full items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] font-semibold text-[var(--ink)] hover:bg-[var(--bg)]"
+              >
+                <FileText className="h-4 w-4 text-[var(--teal)]" />
+                Add files or photos
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                disabled
+                title="Images are coming soon"
+                className="flex w-full cursor-not-allowed items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] font-semibold text-[var(--ink-soft)] opacity-60"
+              >
+                <Sparkles className="h-4 w-4" />
+                Take a photo/screenshot — coming soon
+              </button>
+            </div>
+          ) : null}
 
           <form
             className="flex items-center gap-2.5 rounded-full border border-[var(--border)] bg-[var(--surface)] p-2 pl-4 shadow-sm"
@@ -471,6 +655,30 @@ export function TutorChat({
               disabled={busy || loadingHistory}
               onChange={(e) => setInput(e.target.value)}
               className="flex-1 border-none bg-transparent text-[14px] text-[var(--ink)] placeholder-[var(--ink-soft)] outline-none"
+            />
+            <button
+              type="button"
+              aria-label="Attach a document"
+              aria-expanded={attachMenuOpen}
+              onClick={() => setAttachMenuOpen((v) => !v)}
+              className={cn(
+                "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors",
+                attachMenuOpen
+                  ? "bg-[var(--teal-pale)] text-[var(--teal-dark)]"
+                  : "bg-[var(--violet-pale)] text-[var(--violet)] hover:opacity-80",
+              )}
+            >
+              <Paperclip className="h-4 w-4" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf,.pdf"
+              hidden
+              onChange={(e) => {
+                void attachFiles(e.target.files);
+                e.target.value = "";
+              }}
             />
             {speechReady && dictationSupported() ? (
               <button
