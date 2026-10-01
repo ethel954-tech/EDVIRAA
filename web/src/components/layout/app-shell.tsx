@@ -1,5 +1,6 @@
 import { Sidebar, type AppRole } from "@/components/layout/sidebar";
 import { ToastHost } from "@/components/ui/toast";
+import { FocusMusicPlayer } from "@/components/focus-music-player";
 
 export function AppShell({
   children,
@@ -15,6 +16,7 @@ export function AppShell({
         {children}
       </main>
       <ToastHost />
+      <FocusMusicPlayer />
     </div>
   );
 }
