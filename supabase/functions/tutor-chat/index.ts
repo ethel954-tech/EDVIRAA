@@ -21,6 +21,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 // @ts-ignore: same as above.
 import { embedTexts, type ChatMessage } from "../_shared/qwen.ts";
 import { chat } from "../_shared/llm.ts";
+import { checkAiQuota } from "../_shared/ai-quota.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -101,6 +102,14 @@ Deno.serve(async (req: Request) => {
     const userId = user?.id;
     if (!userId) {
       return json({ error: "Invalid or expired session" }, 401);
+    }
+
+    const quotaFailure = await checkAiQuota(
+      () => supabase.rpc("consume_ai_quota", { p_fn: "tutor-chat", p_max: null }),
+      "tutor-chat",
+    );
+    if (quotaFailure) {
+      return json({ error: quotaFailure.message }, quotaFailure.status);
     }
 
     // ------------------------------------------------------------------

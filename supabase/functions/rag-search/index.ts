@@ -14,6 +14,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 // @ts-ignore: same as above.
 import { embedTexts } from "../_shared/qwen.ts";
+import { checkAiQuota } from "../_shared/ai-quota.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -67,6 +68,22 @@ Deno.serve(async (req: Request) => {
         auth: { persistSession: false },
       },
     );
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return json({ error: "Invalid or expired session" }, 401);
+    }
+
+    const quotaFailure = await checkAiQuota(
+      () => supabase.rpc("consume_ai_quota", { p_fn: "rag-search", p_max: null }),
+      "rag-search",
+    );
+    if (quotaFailure) {
+      return json({ error: quotaFailure.message }, quotaFailure.status);
+    }
 
     // Embed the query with the SAME model as the chunks — mixing embedding
     // models silently destroys retrieval quality.

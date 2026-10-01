@@ -20,6 +20,7 @@ import { chunkPassages } from "../_shared/chunker.ts";
 import { extractTextFromPdf, PdfPageLimitError } from "../_shared/pdf.ts";
 // @ts-ignore: Deno npm: specifier — resolved by the edge runtime, not tsc.
 import { createQwenEmbedder, EMBEDDING_DIMENSIONS } from "../_shared/qwen.ts";
+import { checkAiQuota } from "../_shared/ai-quota.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -74,6 +75,29 @@ Deno.serve(async (req: Request) => {
       global: { headers: { Authorization: authHeader } },
       auth: { persistSession: false },
     });
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return json({ error: "Invalid or expired session" }, 401);
+    }
+
+    const quotaFailure = await checkAiQuota(
+      () => supabase.rpc("consume_ai_quota", { p_fn: "process-document", p_max: null }),
+      "process-document",
+    );
+    if (quotaFailure) {
+      const { error: updateError } = await supabase
+        .from("documents")
+        .update({ status: "failed" })
+        .eq("id", documentId);
+      if (updateError) {
+        console.error("[process-document] quota failure status update failed:", updateError.message);
+      }
+      return json({ error: quotaFailure.message }, quotaFailure.status);
+    }
 
     // Service client ONLY for cleanup paths that must never be skipped.
     supabaseAdmin = createClient(supabaseUrl, serviceKey, {

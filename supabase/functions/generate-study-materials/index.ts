@@ -19,6 +19,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { chatCompletion, type ChatMessage } from "../_shared/qwen.ts";
 // @ts-ignore: same as above.
 import { GENERATION_TIMEOUT_MS } from "../_shared/llm.ts";
+import { checkAiQuota } from "../_shared/ai-quota.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -120,6 +121,14 @@ Deno.serve(async (req: Request) => {
     const userId = user?.id;
     if (!userId) {
       return json({ error: "Invalid or expired session" }, 401);
+    }
+
+    const quotaFailure = await checkAiQuota(
+      () => supabase.rpc("consume_ai_quota", { p_fn: "generate-study-materials", p_max: null }),
+      "generate-study-materials",
+    );
+    if (quotaFailure) {
+      return json({ error: quotaFailure.message }, quotaFailure.status);
     }
 
     // RLS-scoped select proves ownership of the document.
