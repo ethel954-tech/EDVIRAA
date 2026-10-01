@@ -27,13 +27,19 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// Supabase allows 2s CPU per request. The rough local estimate is 20-40ms per
-// page, scaled 1.5-3x for the edge worker (up to 120ms/page). Eight pages use
-// about 0.96s at that upper estimate, leaving time for PDF initialization and
-// chunking. This is a heuristic; complex PDFs can take longer.
-const MAX_PDF_PAGES = 8;
+// Supabase allows 2s CPU per request. The default of 8 pages uses about 0.96s
+// at the rough upper estimate of 120ms/page, leaving time for initialization
+// and chunking. MAX_PDF_PAGES can tune this per deployment.
+const DEFAULT_MAX_PDF_PAGES = 8;
 const MAX_EXTRACTED_CHARS = 150_000;
 const MAX_CHUNKS = 120;
+
+function getMaxPdfPages(): number {
+  const configured = Number(Deno.env.get("MAX_PDF_PAGES"));
+  return Number.isSafeInteger(configured) && configured > 0
+    ? configured
+    : DEFAULT_MAX_PDF_PAGES;
+}
 
 interface ProcessRequest {
   documentId: string;
@@ -102,7 +108,19 @@ Deno.serve(async (req: Request) => {
     // ---------------------------------------------------------------
     // Extract -> chunk -> embed
     // ---------------------------------------------------------------
-    const text = await extractTextFromPdf(bytes, MAX_PDF_PAGES);
+    let pageCount: number | null = null;
+    const extractionStartedAt = performance.now();
+    let text: string;
+    try {
+      text = await extractTextFromPdf(bytes, getMaxPdfPages(), (count) => {
+        pageCount = count;
+      });
+    } finally {
+      console.info("[process-document] PDF extraction metrics:", {
+        pageCount,
+        elapsedMs: Math.round(performance.now() - extractionStartedAt),
+      });
+    }
     const passages = chunkPassages(text);
     if (passages.length === 0) {
       throw new Error("No extractable content found in this PDF.");
@@ -118,7 +136,7 @@ Deno.serve(async (req: Request) => {
       return json(
         {
           error:
-            "This PDF is too large to process within the 8-page limit. Split it into smaller parts and upload them separately.",
+            "This PDF is too large to process. Split it into smaller parts and upload them separately.",
         },
         413,
       );

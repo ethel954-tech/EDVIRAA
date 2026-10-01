@@ -4,10 +4,11 @@ import { createClient } from "@/lib/supabase/client";
 import { uploadPdfWithProgress, validatePdf } from "@/lib/upload";
 
 /**
- * Page cap mirrored from the process-document edge function's CPU guard.
+ * Friendly notice mirrors the process-document page-limit response. The
+ * configured server limit may differ between deployments.
  */
 export const PDF_MAX_CHARS_NOTE =
-  "PDFs are limited to 8 pages. Larger documents should be split into smaller parts before uploading.";
+  "This PDF may have too many pages to process. Split it into smaller parts and upload them separately.";
 
 /**
  * Shared PDF ingestion flow used by the Documents page and the tutor chat

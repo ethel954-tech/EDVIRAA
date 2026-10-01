@@ -35,7 +35,9 @@ const HEADING_RATIO = 1.25; // heading = 25%+ larger than body
 
 export class PdfPageLimitError extends Error {
   constructor() {
-    super("This PDF has too many pages to process in one upload.");
+    super(
+      "This PDF may have too many pages to process. Split it into smaller parts and upload them separately.",
+    );
     this.name = "PdfPageLimitError";
   }
 }
@@ -56,6 +58,7 @@ function normalizePunctuation(text: string): string {
 export async function extractTextFromPdf(
   bytes: Uint8Array,
   maxPages: number,
+  onPageCount?: (pageCount: number) => void,
 ): Promise<string> {
   // Dynamic import keeps pdfjs out of any main bundle. The specifier MUST be
   // a pinned npm: URL — bare specifiers ("pdfjs-dist") are not resolvable by
@@ -79,6 +82,7 @@ export async function extractTextFromPdf(
     disableFontFace: true,
   }).promise;
 
+  onPageCount?.(doc.numPages);
   if (doc.numPages > maxPages) {
     throw new PdfPageLimitError();
   }

@@ -26,11 +26,11 @@ import * as FileSystem from 'expo-file-system';
 export const PDF_MAX_BYTES = 50 * 1024 * 1024; // 50 MB
 
 /**
- * Friendly notice mirrored from the process-document edge function's page
- * limit, chosen to leave CPU headroom for PDF initialization and chunking.
+ * Friendly notice mirrored from the process-document edge function. The
+ * configured server page limit may differ between deployments.
  */
 export const PDF_PAGE_LIMIT_NOTE =
-  'PDFs are limited to 8 pages. Larger documents should be split into smaller parts before uploading.';
+  'This PDF may have too many pages to process. Split it into smaller parts and upload them separately.';
 
 export function validatePdfAsset(file: {
   name?: string | null;
