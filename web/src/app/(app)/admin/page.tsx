@@ -34,27 +34,40 @@ export default async function AdminDashboardPage() {
     { auth: { autoRefreshToken: false, persistSession: false } },
   );
 
-  const [profilesResult, roomsResult, documentsResult, subjectsResult, pendingResult] =
-    await Promise.all([
-      supabase
-        .from("profiles")
-        .select("id, display_name, role, subject_area, created_at")
-        .order("created_at", { ascending: false })
-        .limit(50),
-      supabase.from("rooms").select("id, name, created_at").limit(25),
-      supabase
-        .from("documents")
-        .select("id, status, created_at")
-        .limit(25),
-      supabase.from("subjects").select("id, student_id").limit(25),
-      supabase
-        .from("educator_verifications")
-        .select("user_id, educator_institution, educator_work_email, educator_evidence_path, educator_submitted_at")
-        .eq("educator_verification_status", "pending")
-        .not("educator_submitted_at", "is", null)
-        .order("educator_submitted_at", { ascending: true })
-        .limit(50),
-    ]);
+  const [
+    profilesResult,
+    pendingResult,
+    totalUsersResult,
+    totalStudentsResult,
+    totalEducatorsResult,
+    totalAdminsResult,
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, display_name, role, subject_area, created_at")
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("educator_verifications")
+      .select("user_id, educator_institution, educator_work_email, educator_evidence_path, educator_submitted_at")
+      .eq("educator_verification_status", "pending")
+      .not("educator_submitted_at", "is", null)
+      .order("educator_submitted_at", { ascending: true })
+      .limit(50),
+    supabase.from("profiles").select("id", { count: "exact", head: true }),
+    supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "student"),
+    supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "educator"),
+    supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "admin"),
+  ]);
 
   const { data: authUsersResult } = await authAdmin.auth.admin.listUsers({
     page: 1,
@@ -99,18 +112,24 @@ export default async function AdminDashboardPage() {
       };
     }),
   );
-  const roomCount = roomsResult.data?.length ?? 0;
-  const documentCount = documentsResult.data?.length ?? 0;
-  const subjectCount = subjectsResult.data?.length ?? 0;
+  // Real totals from exact counts; a failed count logs its code and yields
+  // null, which the UI renders as "—" instead of a misleading number.
+  const countOrNull = (
+    result: { count: number | null; error: { code?: string } | null },
+    label: string,
+  ) => {
+    if (result.error) {
+      console.error(`Failed to count ${label}`, { code: result.error.code });
+      return null;
+    }
+    return result.count ?? null;
+  };
 
   const totals = {
-    totalUsers: profiles.length,
-    totalStudents: profiles.filter((row) => row.role === "student").length,
-    totalEducators: profiles.filter((row) => row.role === "educator").length,
-    totalAdmins: profiles.filter((row) => row.role === "admin").length,
-    roomCount,
-    documentCount,
-    subjectCount,
+    totalUsers: countOrNull(totalUsersResult, "users"),
+    totalStudents: countOrNull(totalStudentsResult, "students"),
+    totalEducators: countOrNull(totalEducatorsResult, "educators"),
+    totalAdmins: countOrNull(totalAdminsResult, "admins"),
   };
 
   return (

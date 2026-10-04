@@ -8,7 +8,6 @@ import {
   Filter,
   Search,
   ShieldCheck,
-  Sparkles,
   Users,
 } from "lucide-react";
 
@@ -44,13 +43,10 @@ export function AdminDashboard({
   initialProfiles: ProfileRow[];
   pendingEducators: EducatorApplication[];
   totals: {
-    totalUsers: number;
-    totalStudents: number;
-    totalEducators: number;
-    totalAdmins: number;
-    roomCount: number;
-    documentCount: number;
-    subjectCount: number;
+    totalUsers: number | null;
+    totalStudents: number | null;
+    totalEducators: number | null;
+    totalAdmins: number | null;
   };
 }) {
   const [profiles, setProfiles] = useState(initialProfiles);
@@ -196,33 +192,14 @@ export function AdminDashboard({
                 <Icon className="h-4 w-4" />
               </span>
             </div>
-            <div className="text-[30px] font-fraunces text-[var(--ink)]">{value}</div>
+            <div className="text-[30px] font-fraunces text-[var(--ink)]">
+              {value ?? "—"}
+            </div>
           </div>
         ))}
       </div>
 
-      <div className="mb-6 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_10px_28px_rgba(17,24,39,0.04)]">
-          <div className="mb-4 flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-[var(--indigo)]" />
-            <h2 className="text-[14px] font-semibold text-[var(--ink)]">Platform health</h2>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="rounded-[16px] border border-[var(--border)] bg-[var(--bg)] p-3">
-              <div className="text-[10px] uppercase tracking-[0.12em] text-[var(--ink-soft)]">Rooms</div>
-              <div className="mt-2 text-[26px] font-fraunces text-[var(--ink)]">{totals.roomCount}</div>
-            </div>
-            <div className="rounded-[16px] border border-[var(--border)] bg-[var(--bg)] p-3">
-              <div className="text-[10px] uppercase tracking-[0.12em] text-[var(--ink-soft)]">Documents</div>
-              <div className="mt-2 text-[26px] font-fraunces text-[var(--ink)]">{totals.documentCount}</div>
-            </div>
-            <div className="rounded-[16px] border border-[var(--border)] bg-[var(--bg)] p-3">
-              <div className="text-[10px] uppercase tracking-[0.12em] text-[var(--ink-soft)]">Subjects</div>
-              <div className="mt-2 text-[26px] font-fraunces text-[var(--ink)]">{totals.subjectCount}</div>
-            </div>
-          </div>
-        </div>
-
+      <div className="mb-6">
         <div className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_10px_28px_rgba(17,24,39,0.04)]">
           <div className="mb-4 flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-[var(--amber)]" />
@@ -374,6 +351,10 @@ export function AdminDashboard({
             {statusError}
           </p>
         )}
+
+        <p className="mb-3 text-[12px] text-[var(--ink-soft)]">
+          Showing the 50 most recent users
+        </p>
 
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-[13px]">
