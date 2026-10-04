@@ -46,6 +46,33 @@ export async function PATCH(
     return NextResponse.json({ error: "An active boolean is required." }, { status: 400 });
   }
 
+  // Read the target through the caller's RLS-bound client before touching the
+  // service-role key, so we can reject unknown ids and protect admin accounts.
+  const { data: target, error: targetError } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (targetError) {
+    console.error("Failed to look up target user", { userId, code: targetError.code });
+    return NextResponse.json(
+      { error: "The account could not be updated. Please try again." },
+      { status: 500 },
+    );
+  }
+
+  if (!target) {
+    return NextResponse.json({ error: "User not found." }, { status: 404 });
+  }
+
+  if (body.active === false && target.role === "admin") {
+    return NextResponse.json(
+      { error: "Admin accounts cannot be deactivated here." },
+      { status: 403 },
+    );
+  }
+
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!serviceRoleKey || !supabaseUrl) {
@@ -63,7 +90,15 @@ export async function PATCH(
   });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    console.error("Failed to update user status", {
+      userId,
+      active: body.active,
+      code: error.code,
+    });
+    return NextResponse.json(
+      { error: "The account could not be updated. Please try again." },
+      { status: 400 },
+    );
   }
 
   return NextResponse.json({
