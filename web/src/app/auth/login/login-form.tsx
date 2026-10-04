@@ -12,8 +12,10 @@ import {
 } from "@/components/auth/form-fields";
 import { GoogleButton } from "@/components/auth/google-button";
 import { AuthCardFooterLink } from "@/components/auth/auth-card";
+import { useLocale } from "@/components/locale-provider";
 
 export function LoginForm() {
+  const { t } = useLocale();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,7 +35,7 @@ export function LoginForm() {
       if (error) {
         setError(
           error.message === "Invalid login credentials"
-            ? "Incorrect email or password."
+            ? t("incorrectCredentials")
             : error.message,
         );
         return;
@@ -43,7 +45,7 @@ export function LoginForm() {
       router.push("/dashboard");
       router.refresh();
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(t("tryAgain"));
     } finally {
       setBusy(false);
     }
@@ -65,14 +67,14 @@ export function LoginForm() {
   return (
     <div className="w-full max-w-md">
       <div className="rounded-card border border-primary-100 bg-surface p-8">
-        <h1 className="text-xl font-semibold text-ink">Welcome back</h1>
+        <h1 className="text-xl font-semibold text-ink">{t("loginTitle")}</h1>
         <p className="mt-1 text-sm text-ink/60">
-          Log in to continue studying.
+          {t("loginPrompt")}
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
-            <FieldLabel htmlFor="email">Email</FieldLabel>
+            <FieldLabel htmlFor="email">{t("email")}</FieldLabel>
             <TextInput
               id="email"
               type="email"
@@ -84,33 +86,33 @@ export function LoginForm() {
             />
           </div>
           <div>
-            <FieldLabel htmlFor="password">Password</FieldLabel>
+            <FieldLabel htmlFor="password">{t("password")}</FieldLabel>
             <PasswordInput
               id="password"
               autoComplete="current-password"
               required
-              placeholder="Your password"
+              placeholder={t("passwordPlaceholder")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
 
           <AuthError message={error} />
-          <SubmitButton busy={busy}>Log in</SubmitButton>
+          <SubmitButton busy={busy}>{t("login")}</SubmitButton>
         </form>
 
         <div className="my-5 flex items-center gap-3 text-xs font-medium text-ink/40">
           <span className="h-px flex-1 bg-primary-100" />
-          OR
+          {t("or")}
           <span className="h-px flex-1 bg-primary-100" />
         </div>
 
-        <GoogleButton onClick={handleGoogle} label="Log in with Google" />
+        <GoogleButton onClick={handleGoogle} label={t("googleLogin")} />
 
         <div className="mt-6">
           <AuthCardFooterLink
-            text="New to Study Assistant?"
-            linkText="Create an account"
+            text={t("newToApp")}
+            linkText={t("createAccountLink")}
             href="/auth/sign-up"
           />
         </div>

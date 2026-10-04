@@ -1,14 +1,18 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Audio, type AVPlaybackStatus } from 'expo-av';
+import * as DocumentPicker from 'expo-document-picker';
 import { Music, Pause, Play, ChevronLeft, ChevronRight, Minus, Plus, X } from 'lucide-react-native';
 import { colors, radius } from '../lib/theme';
 import {
   FOCUS_TRACKS,
+  loadSavedCustomTracks,
   loadSavedTrackId,
   loadSavedVolume,
+  saveCustomTracks,
   saveTrackId,
   saveVolume,
+  type FocusTrack,
 } from '../lib/focusMusic';
 
 /**
@@ -26,19 +30,23 @@ import {
 export function FocusMusic() {
   const soundRef = useRef<Audio.Sound | null>(null);
   const [open, setOpen] = useState(false);
+  const [customTracks, setCustomTracks] = useState<FocusTrack[]>([]);
   const [trackId, setTrackId] = useState<string>(FOCUS_TRACKS[0].id);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.6);
 
-  const track = FOCUS_TRACKS.find((t) => t.id === trackId) ?? FOCUS_TRACKS[0];
+  const allTracks = [...FOCUS_TRACKS, ...customTracks];
+  const track = allTracks.find((t) => t.id === trackId) ?? allTracks[0];
   const available = track.source !== null;
-  const hasAnyTrack = FOCUS_TRACKS.some((t) => t.source !== null);
+  const hasAnyTrack = allTracks.some((t) => t.source !== null);
 
-  // Restore last choice (paused) once on mount.
   useEffect(() => {
     (async () => {
+      const savedCustomTracks = await loadSavedCustomTracks();
+      setCustomTracks(savedCustomTracks);
+
       const savedTrack = await loadSavedTrackId();
-      if (savedTrack && FOCUS_TRACKS.some((t) => t.id === savedTrack)) {
+      if (savedTrack && (FOCUS_TRACKS.some((t) => t.id === savedTrack) || savedCustomTracks.some((t) => t.id === savedTrack))) {
         setTrackId(savedTrack);
       }
       setVolume(await loadSavedVolume());
@@ -51,22 +59,21 @@ export function FocusMusic() {
     setIsPlaying(false);
   }, []);
 
-  // Clean stop on unmount.
   useEffect(() => unloadCurrent, [unloadCurrent]);
 
   const createAndPlay = useCallback(
-    async (source: number) => {
+    async (source: Exclude<FocusTrack['source'], null>) => {
       unloadCurrent();
-      // Ambient/ducking mode so focus music yields to the tutor's voice
-      // features instead of fighting them (tutor reconfigures for recording).
       await Audio.setAudioModeAsync({
         playsInSilentModeIOS: true,
-        interruptionModeIOS: 1, // DoNotMix
-        interruptionModeAndroid: 1, // DuckOthers
+        interruptionModeIOS: 1,
+        interruptionModeAndroid: 1,
         shouldDuckAndroid: true,
       }).catch(() => {});
+
+      const soundSource = typeof source === 'number' ? source : { uri: source.uri };
       const { sound } = await Audio.Sound.createAsync(
-        source,
+        soundSource,
         { isLooping: true, shouldPlay: true, volume },
         (status: AVPlaybackStatus) => {
           if (status.isLoaded) setIsPlaying(status.isPlaying);
@@ -101,12 +108,12 @@ export function FocusMusic() {
   }, [available, track.source, createAndPlay]);
 
   const stepTrack = (dir: 1 | -1) => {
-    const playable = FOCUS_TRACKS.filter((t) => t.source !== null);
+    const playable = allTracks.filter((t) => t.source !== null);
     if (playable.length === 0) return;
     const idx = playable.findIndex((t) => t.id === trackId);
     const next = playable[(idx + dir + playable.length) % playable.length];
     if (!next || next.id === trackId) return;
-    unloadCurrent(); // never auto-play after switching
+    unloadCurrent();
     setTrackId(next.id);
     saveTrackId(next.id);
   };
@@ -117,6 +124,47 @@ export function FocusMusic() {
     saveVolume(next);
     soundRef.current?.setVolumeAsync(next).catch(() => {});
   };
+
+  const handleUploadCustomTrack = useCallback(async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'audio/*',
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+
+      const asset = result.assets[0];
+      const uploadedTrack: FocusTrack = {
+        id: `custom-${Date.now()}`,
+        title: asset.name?.replace(/\.[^/.]+$/, '') || 'My track',
+        artist: 'You',
+        source: { uri: asset.uri },
+        license: 'User-uploaded audio — only use music you own or have rights to use in the app.',
+      };
+
+      const nextTracks = [...customTracks, uploadedTrack];
+      setCustomTracks(nextTracks);
+      setTrackId(uploadedTrack.id);
+      saveCustomTracks(nextTracks);
+      saveTrackId(uploadedTrack.id);
+      unloadCurrent();
+    } catch (err) {
+      console.warn('[focus-music] custom upload failed', err);
+    }
+  }, [customTracks, unloadCurrent]);
+
+  const handleDeleteCustomTrack = useCallback((trackToDeleteId: string) => {
+    const nextTracks = customTracks.filter((track) => track.id !== trackToDeleteId);
+    setCustomTracks(nextTracks);
+    saveCustomTracks(nextTracks);
+
+    if (trackId === trackToDeleteId) {
+      const nextDefaultTrack = FOCUS_TRACKS[0];
+      setTrackId(nextDefaultTrack.id);
+      saveTrackId(nextDefaultTrack.id);
+      unloadCurrent();
+    }
+  }, [customTracks, trackId, unloadCurrent]);
 
   return (
     <View style={styles.wrap} pointerEvents="box-none">
@@ -178,6 +226,41 @@ export function FocusMusic() {
               </TouchableOpacity>
             </View>
           </View>
+
+          {customTracks.length > 0 ? (
+            <View style={styles.customList}>
+              <Text style={styles.customTitle}>Your tracks</Text>
+              {customTracks.map((customTrackItem) => (
+                <View key={customTrackItem.id} style={styles.customRow}>
+                  <TouchableOpacity
+                    style={styles.customTrackButton}
+                    onPress={() => {
+                      setTrackId(customTrackItem.id);
+                      saveTrackId(customTrackItem.id);
+                    }}
+                    accessibilityLabel={`Play ${customTrackItem.title}`}
+                  >
+                    <Text style={styles.customTrackName} numberOfLines={1}>{customTrackItem.title}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.deleteBtn}
+                    onPress={() => handleDeleteCustomTrack(customTrackItem.id)}
+                    accessibilityLabel={`Delete ${customTrackItem.title}`}
+                  >
+                    <Text style={styles.deleteBtnText}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          <TouchableOpacity
+            style={styles.uploadBtn}
+            onPress={handleUploadCustomTrack}
+            accessibilityLabel="Upload your own focus music"
+          >
+            <Text style={styles.uploadBtnText}>Upload song</Text>
+          </TouchableOpacity>
         </View>
       ) : null}
 
@@ -251,4 +334,41 @@ const styles = StyleSheet.create({
     marginLeft: 'auto',
   },
   volumeText: { fontSize: 11, color: colors.inkSoft, minWidth: 32, textAlign: 'center' },
+  uploadBtn: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    backgroundColor: colors.bg,
+  },
+  uploadBtnText: { fontSize: 12, color: colors.ink, fontWeight: '600' },
+  customList: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: 10,
+    gap: 8,
+  },
+  customTitle: { fontSize: 11, fontWeight: '700', color: colors.inkSoft, textTransform: 'uppercase', letterSpacing: 0.4 },
+  customRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  customTrackButton: {
+    flex: 1,
+    paddingVertical: 7,
+    paddingHorizontal: 8,
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+  },
+  customTrackName: { fontSize: 11, color: colors.ink, fontWeight: '600' },
+  deleteBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: radius.sm,
+    backgroundColor: '#FDE7E7',
+  },
+  deleteBtnText: { fontSize: 10, color: '#B42318', fontWeight: '700' },
 });

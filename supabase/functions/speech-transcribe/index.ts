@@ -4,13 +4,16 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 // ============================================================================
 // speech-transcribe — voice note → text for the AI Tutor (Task 24)
 //
-// Receives a multipart/form-data upload with an "audio" file part, sends it
-// to Qwen's audio understanding endpoint (qwen2-audio-asr) and returns the
-// transcript. The caller (mobile app) then sends the transcript to tutor-chat
-// as a normal text message.
+// Receives JSON with the recording as base64, sends it as an `input_audio`
+// content part to the shared OpenAI-compatible LLM endpoint (LLM_BASE_URL /
+// LLM_API_KEY — same layer as the other functions, provider Gemini) and
+// returns the transcript. The caller (mobile app) then sends the transcript
+// to tutor-chat as a normal text message.
 //
 // Deploy:  supabase functions deploy speech-transcribe
-// Secrets: supabase secrets set DASHSCOPE_API_KEY=sk-...
+// Secrets: supabase secrets set LLM_API_KEY=... LLM_BASE_URL=...
+//          (LLM_TRANSCRIBE_MODEL optional; falls back to LLM_MODEL,
+//          then gemini-2.5-flash)
 // ============================================================================
 
 const corsHeaders = {
@@ -25,6 +28,8 @@ interface TranscribeRequest {
 }
 
 const MAX_BODY_BYTES = 5 * 1024 * 1024;
+/** Hard wall-clock cap on the provider call (hardening: never hang). */
+const TRANSCRIBE_TIMEOUT_MS = 30_000;
 
 class RequestBodyTooLargeError extends Error {
   constructor() {
@@ -53,10 +58,15 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Missing Authorization header" }, 401);
     }
 
-    const apiKey = Deno.env.get("DASHSCOPE_API_KEY");
-    if (!apiKey) {
-      console.error("[speech-transcribe] provider API key is not configured");
-      return json({ error: "DASHSCOPE_API_KEY is not configured" }, 500);
+    const apiKey = Deno.env.get("LLM_API_KEY");
+    const baseUrl = Deno.env.get("LLM_BASE_URL")?.replace(/\/+$/, "");
+    const model =
+      Deno.env.get("LLM_TRANSCRIBE_MODEL") ??
+      Deno.env.get("LLM_MODEL") ??
+      "gemini-2.5-flash";
+    if (!apiKey || !baseUrl) {
+      console.error("[speech-transcribe] LLM configuration missing");
+      return json({ error: "Transcription is not configured." }, 500);
     }
 
     const supabase = createClient(
@@ -81,32 +91,39 @@ Deno.serve(async (req: Request) => {
       return json({ error: "audio_base64 is required" }, 400);
     }
 
-    const bytes = base64ToBytes(audio_base64);
+    // The OpenAI-compatible audio content part wants plain base64 plus a
+    // short format hint; derive it from the client's MIME type (audio/mp4 ->
+    // "mp4", audio/mpeg -> "mpeg", audio/webm -> "webm", fallback "mp4").
+    // Strip a data-URI prefix if the client ever sends one.
+    const audioB64 = audio_base64.replace(/^data:[^;]+;base64,/, "").trim();
+    const bytes = base64ToBytes(audioB64);
     if (bytes.length === 0) {
       return json({ error: "Empty audio upload" }, 400);
     }
 
-    // Convert to base64 data URI for the DashScope API
-    const dataUri = `data:${mime_type || "audio/mp4"};base64,${bytesToBase64(bytes)}`;
+    const mimeType = mime_type || "audio/mp4";
+    const audioFormat = mimeType.split("/")[1]?.split(";")[0] || "mp4";
 
-    // DashScope qwen2-audio transcription (OpenAI-compatible endpoint)
-    const res = await fetch(
-      "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions",
-      {
+    // Shared OpenAI-compatible endpoint (Gemini) — audio in, text out.
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), TRANSCRIBE_TIMEOUT_MS);
+    let res: Response;
+    try {
+      res = await fetch(`${baseUrl}/chat/completions`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "qwen2-audio-asr",
+          model,
           messages: [
             {
               role: "user",
               content: [
                 {
                   type: "input_audio",
-                  input_audio: { data: dataUri, format: "mp4" },
+                  input_audio: { data: audioB64, format: audioFormat },
                 },
                 {
                   type: "text",
@@ -115,10 +132,12 @@ Deno.serve(async (req: Request) => {
               ],
             },
           ],
-          modalities: ["text"],
         }),
-      },
-    );
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     const payload = await res.json().catch((err) => {
       console.error("[speech-transcribe] provider response parse failed:", err);
@@ -189,15 +208,6 @@ function base64ToBytes(b64: string): Uint8Array {
     if (e4 !== 64 && e4 !== -1) bytes[u++] = c3;
   }
   return bytes.subarray(0, u);
-}
-
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-  }
-  return btoa(binary);
 }
 
 function json(body: unknown, status: number) {

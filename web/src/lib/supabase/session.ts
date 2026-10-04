@@ -6,7 +6,8 @@ const SIGN_UP = "/auth/sign-up";
 const ROLE = "/auth/role";
 const ONBOARDING = "/onboarding";
 const EDUCATOR_ONBOARDING = "/onboarding/educator";
-const HOME_BY_ROLE = { student: "/dashboard", educator: "/educator" } as const;
+const EDUCATOR_PENDING = "/educator/pending";
+const HOME_BY_ROLE = { student: "/dashboard", educator: "/educator", admin: "/admin" } as const;
 
 const AUTH_PAGES = [LOGIN, SIGN_UP];
 
@@ -105,7 +106,7 @@ export async function updateSession(request: NextRequest) {
     .single();
 
   // Generated database types aren't wired up yet; pin the role enum here.
-  const userRole = profile?.role as "student" | "educator" | undefined;
+  const userRole = profile?.role as "student" | "educator" | "admin" | undefined;
 
   if (!userRole) {
     if (pathname === ROLE) return supabaseResponse;
@@ -130,27 +131,37 @@ export async function updateSession(request: NextRequest) {
     if (hasSubjects && pathname === ONBOARDING) {
       return redirectPreservingCookies(HOME_BY_ROLE.student);
     }
-  } else {
-    // Educators: profile setup (name + subject area) before anything else.
-    // subject_area is filled at /onboarding/educator; its presence marks a
-    // completed educator setup (display_name is always non-empty).
+  } else if (userRole === "educator") {
+    // Educators must submit evidence and be approved before any educator
+    // tools are reachable. Rejected or not-yet-submitted applicants return
+    // to the application form; submitted applicants see the pending page.
     const { data: setup, error: setupError } = await supabase
-      .from("profiles")
-      .select("subject_area")
-      .eq("id", user.id)
+      .from("educator_verifications")
+      .select("educator_verification_status, educator_submitted_at")
+      .eq("user_id", user.id)
       .single();
 
-    const isSetUp = !setupError && typeof setup?.subject_area === "string";
+    const isVerified =
+      !setupError && setup?.educator_verification_status === "verified";
+    const isPending =
+      !setupError &&
+      setup?.educator_verification_status === "pending" &&
+      Boolean(setup.educator_submitted_at);
 
-    if (!isSetUp && pathname !== EDUCATOR_ONBOARDING) {
-      return redirectPreservingCookies(EDUCATOR_ONBOARDING);
-    }
-    if (isSetUp && pathname === EDUCATOR_ONBOARDING) {
+    if (isVerified && (pathname === EDUCATOR_ONBOARDING || pathname === EDUCATOR_PENDING)) {
       return redirectPreservingCookies(HOME_BY_ROLE.educator);
+    }
+    if (!isVerified) {
+      const requiredPath = isPending ? EDUCATOR_PENDING : EDUCATOR_ONBOARDING;
+      if (pathname !== requiredPath) return redirectPreservingCookies(requiredPath);
     }
     // Student-only flow: educators never see the subject picker.
     if (pathname === ONBOARDING) {
       return redirectPreservingCookies(HOME_BY_ROLE.educator);
+    }
+  } else if (userRole === "admin") {
+    if (pathname === ONBOARDING || pathname === EDUCATOR_ONBOARDING) {
+      return redirectPreservingCookies(HOME_BY_ROLE.admin);
     }
   }
 
@@ -162,8 +173,8 @@ export async function updateSession(request: NextRequest) {
 
   // /dashboard is the post-login landing spot (LoginForm pushes it): route
   // it by role so educators land in their own dashboard instead.
-  if (pathname === "/dashboard" && userRole === "educator") {
-    return redirectPreservingCookies(HOME_BY_ROLE.educator);
+  if (pathname === "/dashboard" && (userRole === "educator" || userRole === "admin")) {
+    return redirectPreservingCookies(HOME_BY_ROLE[userRole]);
   }
 
   return supabaseResponse;

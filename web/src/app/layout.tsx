@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Fraunces } from "next/font/google";
+import { LocaleProvider } from "@/components/locale-provider";
+import { LocaleDocumentSync } from "@/lib/locale-store";
 import "./globals.css";
 
 const inter = Inter({
@@ -26,10 +28,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${inter.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body className="min-h-full font-sans bg-[var(--bg)] text-[var(--ink)]">
-        {children}
+        <LocaleProvider>
+          <LocaleDocumentSync />
+          {children}
+        </LocaleProvider>
       </body>
     </html>
   );

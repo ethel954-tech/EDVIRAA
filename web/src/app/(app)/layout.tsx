@@ -21,7 +21,12 @@ export default async function AppLayout({
       ).data
     : null;
 
-  const role = profile?.role === "educator" ? "educator" : "student";
+  const role =
+    profile?.role === "admin"
+      ? "admin"
+      : profile?.role === "educator"
+        ? "educator"
+        : "student";
 
   return <AppShell role={role}>{children}</AppShell>;
 }

@@ -1,11 +1,13 @@
 {
   "expo": {
-    "name": "Study Assistant",
-    "slug": "study-assistant-mobile",
+    "name": "Edvira",
+    "slug": "edvira",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/edvira-icon.png",
     "splash": {
+      "image": "./assets/edvira-splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#F5FAF8"
     },
@@ -16,7 +18,9 @@
       }
     },
     "android": {
+      "package": "com.edviraa.edvira",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F5FAF8"
       },
       "permissions": ["RECORD_AUDIO"]

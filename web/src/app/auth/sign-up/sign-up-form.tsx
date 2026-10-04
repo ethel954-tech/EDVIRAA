@@ -19,11 +19,13 @@ import {
 import { RoleConfirmDialog } from "@/components/auth/role-confirm-dialog";
 import { GoogleButton } from "@/components/auth/google-button";
 import { AuthCardFooterLink } from "@/components/auth/auth-card";
+import { useLocale } from "@/components/locale-provider";
 
 type Step = "details" | "role" | "check-email";
 
 export function SignUpForm() {
   const router = useRouter();
+  const { locale } = useLocale();
   const [step, setStep] = useState<Step>("details");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,7 +40,9 @@ export function SignUpForm() {
     e.preventDefault();
     setError(null);
     if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+      setError(
+        locale === "fr" ? "Le mot de passe doit contenir au moins 6 caractères." : "Password must be at least 6 characters.",
+      );
       return;
     }
     setStep("role");
@@ -79,7 +83,11 @@ export function SignUpForm() {
         setStep("check-email");
       }
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(
+        locale === "fr"
+          ? "Une erreur s'est produite. Veuillez réessayer."
+          : "Something went wrong. Please try again.",
+      );
       setStep("details");
     } finally {
       setBusy(false);
@@ -103,16 +111,21 @@ export function SignUpForm() {
       <div className="w-full max-w-md rounded-card border border-primary-100 bg-surface p-8 text-center">
         <MailCheck className="mx-auto h-10 w-10 text-primary-600" />
         <h1 className="mt-4 text-xl font-semibold text-ink">
-          Check your inbox
+          {locale === "fr" ? "Vérifiez votre boîte mail" : "Check your inbox"}
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-ink/60">
-          We sent a confirmation link to <strong>{email}</strong>. Confirm your
-          email to finish creating your account.
+          {locale === "fr"
+            ? "Nous avons envoyé un lien de confirmation à "
+            : "We sent a confirmation link to "}
+          <strong>{email}</strong>
+          {locale === "fr"
+            ? ". Confirmez votre e-mail pour terminer la création de votre compte."
+            : ". Confirm your email to finish creating your account."}
         </p>
         <div className="mt-6">
           <AuthCardFooterLink
-            text="Didn't get it or already confirmed?"
-            linkText="Back to log in"
+            text={locale === "fr" ? "Vous ne l'avez pas reçu ou vous avez déjà confirmé ?" : "Didn't get it or already confirmed?"}
+            linkText={locale === "fr" ? "Retour à la connexion" : "Back to log in"}
             href="/auth/login"
           />
         </div>
@@ -126,10 +139,12 @@ export function SignUpForm() {
         <div className="rounded-card border border-primary-100 bg-surface p-8">
           <StepIndicator current={2} />
           <h1 className="text-xl font-semibold text-ink">
-            How will you use Study Assistant?
+            {locale === "fr" ? "Comment utiliserez-vous Study Assistant ?" : "How will you use Study Assistant?"}
           </h1>
           <p className="mt-1 text-sm text-ink/60">
-            Pick your account type. This choice is permanent.
+            {locale === "fr"
+              ? "Choisissez votre type de compte. Ce choix est définitif."
+              : "Pick your account type. This choice is permanent."}
           </p>
 
           <div className="mt-6">
@@ -150,8 +165,12 @@ export function SignUpForm() {
               onClick={() => role && setConfirming(true)}
             >
               {role
-                ? `Continue as ${roleMeta[role].label}`
-                : "Select a role to continue"}
+                ? locale === "fr"
+                  ? `Continuer en tant que ${roleMeta[role].label === "Student" ? "Étudiant" : "Éducateur"}`
+                  : `Continue as ${roleMeta[role].label}`
+                : locale === "fr"
+                  ? "Sélectionnez un rôle pour continuer"
+                  : "Select a role to continue"}
             </SubmitButton>
             <button
               type="button"
@@ -159,7 +178,7 @@ export function SignUpForm() {
               disabled={busy}
               className="w-full rounded-btn px-4 py-2 text-sm font-medium text-ink/60 transition-colors hover:bg-surface-muted hover:text-ink disabled:opacity-60"
             >
-              Back
+              {locale === "fr" ? "Retour" : "Back"}
             </button>
           </div>
         </div>
@@ -188,26 +207,32 @@ export function SignUpForm() {
     <div className="w-full max-w-md">
       <div className="rounded-card border border-primary-100 bg-surface p-8">
         <StepIndicator current={1} />
-        <h1 className="text-xl font-semibold text-ink">Create your account</h1>
+        <h1 className="text-xl font-semibold text-ink">
+          {locale === "fr" ? "Créez votre compte" : "Create your account"}
+        </h1>
         <p className="mt-1 text-sm text-ink/60">
-          Personalized studying, grounded in your own notes.
+          {locale === "fr"
+            ? "Une étude personnalisée, ancrée dans vos propres notes."
+            : "Personalized studying, grounded in your own notes."}
         </p>
 
         <form onSubmit={handleDetailsStep} className="mt-6 space-y-4">
           <div>
-            <FieldLabel htmlFor="display-name">Display name</FieldLabel>
+            <FieldLabel htmlFor="display-name">
+              {locale === "fr" ? "Nom d'affichage" : "Display name"}
+            </FieldLabel>
             <TextInput
               id="display-name"
               type="text"
               autoComplete="name"
-              placeholder="Alex Chen"
+              placeholder={locale === "fr" ? "Alex Chen" : "Alex Chen"}
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               maxLength={60}
             />
           </div>
           <div>
-            <FieldLabel htmlFor="email">Email</FieldLabel>
+            <FieldLabel htmlFor="email">{locale === "fr" ? "E-mail" : "Email"}</FieldLabel>
             <TextInput
               id="email"
               type="email"
@@ -219,40 +244,44 @@ export function SignUpForm() {
             />
           </div>
           <div>
-            <FieldLabel htmlFor="password">Password</FieldLabel>
+            <FieldLabel htmlFor="password">
+              {locale === "fr" ? "Mot de passe" : "Password"}
+            </FieldLabel>
             <PasswordInput
               id="password"
               autoComplete="new-password"
               required
-              placeholder="At least 6 characters"
+              placeholder={locale === "fr" ? "Au moins 6 caractères" : "At least 6 characters"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
 
           <AuthError message={error} />
-          <SubmitButton busy={busy}>Continue</SubmitButton>
+          <SubmitButton busy={busy}>{locale === "fr" ? "Continuer" : "Continue"}</SubmitButton>
         </form>
 
         <div className="my-5 flex items-center gap-3 text-xs font-medium text-ink/40">
           <span className="h-px flex-1 bg-primary-100" />
-          OR
+          {locale === "fr" ? "OU" : "OR"}
           <span className="h-px flex-1 bg-primary-100" />
         </div>
 
-        <GoogleButton onClick={handleGoogle} label="Sign up with Google" />
+        <GoogleButton onClick={handleGoogle} label={locale === "fr" ? "S'inscrire avec Google" : "Sign up with Google"} />
 
         <div className="mt-6">
           <AuthCardFooterLink
-            text="Already have an account?"
-            linkText="Log in"
+            text={locale === "fr" ? "Vous avez déjà un compte ?" : "Already have an account?"}
+            linkText={locale === "fr" ? "Se connecter" : "Log in"}
             href="/auth/login"
           />
         </div>
       </div>
 
       <p className="mt-4 text-center text-xs text-ink/40">
-        Step 2 of 2: you&apos;ll choose Student or Educator — permanently.
+        {locale === "fr"
+          ? "Étape 2 sur 2 : vous choisirez Étudiant ou Éducateur — définitivement."
+          : "Step 2 of 2: you&apos;ll choose Student or Educator — permanently."}
       </p>
     </div>
   );

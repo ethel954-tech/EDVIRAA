@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { TriangleAlert } from "lucide-react";
+import { useLocale } from "@/components/locale-provider";
 import { cn } from "@/lib/utils";
 
 /**
@@ -21,6 +22,7 @@ export function RoleConfirmDialog({
   busy?: boolean;
   error?: string | null;
 }) {
+  const { locale } = useLocale();
   const [acknowledged, setAcknowledged] = useState(false);
 
   return (
@@ -37,13 +39,20 @@ export function RoleConfirmDialog({
           </span>
           <div>
             <h2 id="role-confirm-title" className="font-semibold text-ink">
-              This can&apos;t be changed later — are you sure?
+              {locale === "fr"
+                ? "Ce choix ne pourra plus être modifié — êtes-vous sûr ?"
+                : "This can&apos;t be changed later — are you sure?"}
             </h2>
             <p className="mt-1 text-sm text-ink/60">
-              Your account will be permanently set up as{" "}
-              <span className="font-medium capitalize text-ink">{role}</span>.
-              Student and educator features are completely separate, and there
-              is no way to switch afterward.
+              {locale === "fr"
+                ? "Votre compte sera définitivement configuré en tant que "
+                : "Your account will be permanently set up as "}
+              <span className="font-medium capitalize text-ink">
+                {locale === "fr" ? (role === "student" ? "étudiant" : "éducateur") : role}
+              </span>
+              {locale === "fr"
+                ? ". Les fonctions des étudiants et des éducateurs sont totalement distinctes, et il n'est pas possible de changer ensuite."
+                : ". Student and educator features are completely separate, and there is no way to switch afterward."}
             </p>
           </div>
         </div>
@@ -56,7 +65,7 @@ export function RoleConfirmDialog({
             disabled={busy}
             className="mt-0.5 h-4 w-4 accent-primary-600"
           />
-          I understand this choice is permanent.
+          {locale === "fr" ? "Je comprends que ce choix est définitif." : "I understand this choice is permanent."}
         </label>
 
         {error ? (
@@ -72,7 +81,7 @@ export function RoleConfirmDialog({
             disabled={busy}
             className="rounded-btn border border-primary-100 px-4 py-2 text-sm font-medium text-ink/70 transition-colors hover:bg-surface-muted disabled:opacity-60"
           >
-            Go back
+            {locale === "fr" ? "Retour" : "Go back"}
           </button>
           <button
             type="button"
@@ -83,7 +92,13 @@ export function RoleConfirmDialog({
               "disabled:cursor-not-allowed disabled:opacity-50",
             )}
           >
-            {busy ? "Setting up…" : `Continue as ${role}`}
+            {busy
+              ? locale === "fr"
+                ? "Configuration…"
+                : "Setting up…"
+              : locale === "fr"
+                ? `Continuer en tant que ${role === "student" ? "étudiant" : "éducateur"}`
+                : `Continue as ${role}`}
           </button>
         </div>
       </div>

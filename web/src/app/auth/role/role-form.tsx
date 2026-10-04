@@ -7,6 +7,7 @@ import { AuthError, SubmitButton } from "@/components/auth/form-fields";
 import { RoleSelect, roleMeta, type Role } from "@/components/auth/role-select";
 import { RoleConfirmDialog } from "@/components/auth/role-confirm-dialog";
 import { AuthCardFooterLink } from "@/components/auth/auth-card";
+import { useLocale } from "@/components/locale-provider";
 
 /**
  * Shown after the FIRST Google sign-in when the profile has no role yet
@@ -16,6 +17,7 @@ import { AuthCardFooterLink } from "@/components/auth/auth-card";
  */
 export function RoleForm() {
   const router = useRouter();
+  const { locale } = useLocale();
   const [role, setRole] = useState<Role | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -37,7 +39,11 @@ export function RoleForm() {
       router.replace("/dashboard");
       router.refresh();
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(
+        locale === "fr"
+          ? "Une erreur s'est produite. Veuillez réessayer."
+          : "Something went wrong. Please try again.",
+      );
     } finally {
       setBusy(false);
     }
@@ -47,10 +53,12 @@ export function RoleForm() {
     <div className="w-full max-w-md">
       <div className="rounded-card border border-primary-100 bg-surface p-8">
         <h1 className="text-xl font-semibold text-ink">
-          How will you use Study Assistant?
+          {locale === "fr" ? "Comment utiliserez-vous Study Assistant ?" : "How will you use Study Assistant?"}
         </h1>
         <p className="mt-1 text-sm text-ink/60">
-          Pick your account type. This choice is permanent.
+          {locale === "fr"
+            ? "Choisissez votre type de compte. Ce choix est définitif."
+            : "Pick your account type. This choice is permanent."}
         </p>
 
         <div className="mt-6">
@@ -73,15 +81,19 @@ export function RoleForm() {
             }}
           >
             {role
-              ? `Continue as ${roleMeta[role].label}`
-              : "Select a role to continue"}
+              ? locale === "fr"
+                ? `Continuer en tant que ${roleMeta[role].label === "Student" ? "Étudiant" : "Éducateur"}`
+                : `Continue as ${roleMeta[role].label}`
+              : locale === "fr"
+                ? "Sélectionnez un rôle pour continuer"
+                : "Select a role to continue"}
           </SubmitButton>
         </div>
 
         <div className="mt-6">
           <AuthCardFooterLink
-            text="Changed your mind about Google?"
-            linkText="Use email and password instead"
+            text={locale === "fr" ? "Vous avez changé d'avis sur Google ?" : "Changed your mind about Google?"}
+            linkText={locale === "fr" ? "Utiliser l'e-mail et le mot de passe" : "Use email and password instead"}
             href="/auth/sign-up"
           />
         </div>

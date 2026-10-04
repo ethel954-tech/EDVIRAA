@@ -7,9 +7,9 @@ copyrighted music.
 
 | Track | Artist | License | Source / attribution |
 |---|---|---|---|
-| Gentle Rain | — | PLACEHOLDER — no file supplied | — |
-| Deep Focus Loop | — | PLACEHOLDER — no file supplied | — |
-| Quiet Piano | — | PLACEHOLDER — no file supplied | — |
+| Gentle Rain | EDVIRAA | CC0 — generated in-house for this app | Created locally for EDVIRAA; no third-party copyright restrictions |
+| Deep Focus Loop | EDVIRAA | CC0 — generated in-house for this app | Created locally for EDVIRAA; no third-party copyright restrictions |
+| Quiet Piano | EDVIRAA | CC0 — generated in-house for this app | Created locally for EDVIRAA; no third-party copyright restrictions |
 
 When you add a track file to this folder:
 1. Fill in the track's `src` in `web/src/lib/focus-music.ts` (and

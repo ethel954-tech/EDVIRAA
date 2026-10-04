@@ -12,7 +12,7 @@ export default function RootLayout() {
   const [loading, setLoading] = useState(true);
   const [checkingRole, setCheckingRole] = useState(false);
   const [session, setSession] = useState<any>(null);
-  const [userRole, setUserRole] = useState<'student' | 'educator' | null>(null);
+  const [userRole, setUserRole] = useState<'student' | 'educator' | 'admin' | null>(null);
   const colorScheme = useColorScheme();
 
   // Keep the app palette in sync with the OS, matching the web app's
@@ -67,7 +67,11 @@ export default function RootLayout() {
         .select('role')
         .eq('id', userId)
         .single();
-      setUserRole(data?.role ?? null);
+      setUserRole(
+        data?.role === 'student' || data?.role === 'educator' || data?.role === 'admin'
+          ? data.role
+          : null,
+      );
     } catch {
       setUserRole(null);
     } finally {
@@ -89,14 +93,27 @@ export default function RootLayout() {
         router.replace('/(auth)/sign-in');
       }
     } else if (!userRole) {
-      if (inOnboarding) return;
+      const isRoleSelection = inOnboarding && segments[1] === 'role-selection';
+      if (isRoleSelection) return;
       // After finalize_role() succeeds the client navigates to the next
       // onboarding step / its destination, but userRole is stale (null).
-      // Re-check the profile instead of bouncing back to role-selection
-      // (which would fail with "Role already set and cannot be changed").
+      // Re-check the profile instead of bouncing to role-selection or allowing
+      // another onboarding screen before the role has actually been selected.
       setCheckingRole(true);
-      supabase.auth.getUser().then(({ data: { user } }) => {
-        if (user) return fetchRole(user.id);
+      supabase.auth.getUser().then(async ({ data: { user } }) => {
+        if (!user) return;
+        const { data } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        if (data?.role === 'student' || data?.role === 'educator' || data?.role === 'admin') {
+          setUserRole(data.role);
+        } else {
+          router.replace('/(onboarding)/role-selection');
+        }
+      }).catch(() => {
+        router.replace('/(onboarding)/role-selection');
       }).finally(() => setCheckingRole(false));
     } else if (userRole === 'student') {
       // (tabs) area plus the full-screen lesson reader are both valid
@@ -108,6 +125,8 @@ export default function RootLayout() {
       if (!inEducator) {
         router.replace('/educator');
       }
+    } else if (userRole === 'admin' && segments[0] !== 'settings') {
+      router.replace('/settings');
     }
   }, [session, userRole, loading, segments]);
 

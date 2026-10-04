@@ -29,12 +29,23 @@ const SUBJECT_SUGGESTIONS = [
  */
 export function EducatorOnboardingForm({
   defaultDisplayName,
+  defaultSubjectArea,
+  defaultInstitution,
+  defaultWorkEmail,
+  rejectionNote,
 }: {
   defaultDisplayName: string;
+  defaultSubjectArea: string;
+  defaultInstitution: string;
+  defaultWorkEmail: string;
+  rejectionNote: string | null;
 }) {
   const router = useRouter();
   const [displayName, setDisplayName] = useState(defaultDisplayName);
-  const [subjectArea, setSubjectArea] = useState("");
+  const [subjectArea, setSubjectArea] = useState(defaultSubjectArea);
+  const [institution, setInstitution] = useState(defaultInstitution);
+  const [workEmail, setWorkEmail] = useState(defaultWorkEmail);
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,6 +53,8 @@ export function EducatorOnboardingForm({
     e.preventDefault();
     const name = displayName.trim();
     const subject = subjectArea.trim();
+    const school = institution.trim();
+    const email = workEmail.trim();
     if (name.length === 0) {
       setError("Please enter your name — students will see it in your rooms.");
       return;
@@ -50,23 +63,65 @@ export function EducatorOnboardingForm({
       setError("Please enter your subject area.");
       return;
     }
+    if (school.length < 2 || email.length < 5) {
+      setError("Enter your school or institution and your work email.");
+      return;
+    }
+    if (!evidenceFile) {
+      setError("Upload a school ID, employment letter, or other proof of employment.");
+      return;
+    }
+
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
+    if (!allowedTypes.includes(evidenceFile.type) || evidenceFile.size > 5 * 1024 * 1024) {
+      setError("Evidence must be a PDF, JPG, or PNG no larger than 5 MB.");
+      return;
+    }
 
     setBusy(true);
     setError(null);
     try {
       const supabase = createClient();
-      const { error } = await supabase
-        .from("profiles")
-        .update({ display_name: name, subject_area: subject })
-        .eq("id", (await supabase.auth.getUser()).data.user?.id ?? "");
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-      if (error) {
-        setError(error.message);
+      if (authError || !user) {
+        setError("Your session expired. Please sign in again.");
         return;
       }
 
-      // Middleware now sees subject_area set and routes /educator normally.
-      router.replace("/educator");
+      const extension = evidenceFile.type === "application/pdf"
+        ? "pdf"
+        : evidenceFile.type === "image/jpeg"
+          ? "jpg"
+          : "png";
+      const evidencePath = `${user.id}/${crypto.randomUUID()}.${extension}`;
+      const { error: uploadError } = await supabase.storage
+        .from("educator-verification")
+        .upload(evidencePath, evidenceFile, { contentType: evidenceFile.type });
+
+      if (uploadError) {
+        setError(uploadError.message);
+        return;
+      }
+
+      const { error: submitError } = await supabase.rpc(
+        "submit_educator_verification",
+        {
+          p_display_name: name,
+          p_subject_area: subject,
+          p_institution: school,
+          p_work_email: email,
+          p_evidence_path: evidencePath,
+        },
+      );
+
+      if (submitError) {
+        await supabase.storage.from("educator-verification").remove([evidencePath]);
+        setError(submitError.message);
+        return;
+      }
+
+      router.replace("/educator/pending");
       router.refresh();
     } catch {
       setError("Something went wrong. Please try again.");
@@ -79,12 +134,17 @@ export function EducatorOnboardingForm({
     <div className="w-full max-w-md">
       <div className="rounded-card border border-primary-100 bg-surface p-8">
         <h1 className="text-xl font-semibold text-ink">
-          Set up your educator profile
+          Apply for educator access
         </h1>
         <p className="mt-1 text-sm text-ink/60">
-          Tell us who you are and what you teach. You&apos;ll create rooms for
-          your students next.
+          Educator access requires admin review of your school details and proof of employment.
         </p>
+
+        {rejectionNote && (
+          <p role="alert" className="mt-4 rounded-[12px] border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            Application not approved: {rejectionNote}
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
@@ -125,13 +185,55 @@ export function EducatorOnboardingForm({
             </div>
           </div>
 
+          <div>
+            <FieldLabel htmlFor="institution">School or institution</FieldLabel>
+            <TextInput
+              id="institution"
+              required
+              maxLength={160}
+              placeholder="e.g. Northview Secondary School"
+              value={institution}
+              disabled={busy}
+              onChange={(e) => setInstitution(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <FieldLabel htmlFor="work-email">School or institutional email</FieldLabel>
+            <TextInput
+              id="work-email"
+              type="email"
+              autoComplete="email"
+              required
+              maxLength={254}
+              placeholder="name@school.edu"
+              value={workEmail}
+              disabled={busy}
+              onChange={(e) => setWorkEmail(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <FieldLabel htmlFor="evidence">Proof of educator employment</FieldLabel>
+            <input
+              id="evidence"
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+              required
+              disabled={busy}
+              onChange={(event) => setEvidenceFile(event.target.files?.[0] ?? null)}
+              className="block w-full rounded-btn border border-primary-100 bg-surface p-2 text-sm text-ink/70 file:mr-3 file:rounded-md file:border-0 file:bg-primary-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary-700"
+            />
+            <p className="mt-1 text-xs text-ink/50">PDF, JPG, or PNG; maximum 5 MB.</p>
+          </div>
+
           <AuthError message={error} />
-          <SubmitButton busy={busy}>Continue to dashboard</SubmitButton>
+          <SubmitButton busy={busy}>Submit for review</SubmitButton>
         </form>
       </div>
 
       <p className="mt-4 text-center text-xs text-ink/40">
-        You can update your name and subject later in Settings.
+        Your evidence is visible only to you and authorized administrators.
       </p>
     </div>
   );

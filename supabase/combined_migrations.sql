@@ -1,12 +1,14 @@
--- ==============================================================================
--- COMBINED MIGRATIONS — auto-generated from supabase/migrations/*.sql (sorted).
--- Run this whole file in the Supabase SQL Editor. Idempotent: safe to re-run.
--- Generated: 2026-09-28T09:40:13Z
--- ==============================================================================
+-- =====================================================================
+-- EDVIRAA — Combined Supabase migrations
+-- GENERATED from supabase/migrations/*.sql (do not hand-edit).
+-- Contains the full current migration set (21 files, 20250921000000_init_schema.sql .. 20261003000003_educator_verification.sql), in filename order.
+-- Each section below is the exact content of one migration file.
+-- Intended for one-shot pasting into the Supabase SQL Editor.
+-- =====================================================================
 
--- ============================================================
--- FILE: supabase/migrations/20250921000000_init_schema.sql
--- ============================================================
+-- =====================================================================
+-- Migration: 20250921000000_init_schema.sql
+-- =====================================================================
 -- ============================================================================
 -- Study Assistant — initial schema (spec section 5)
 -- Tables, enums, triggers, indexes, and Row Level Security.
@@ -111,7 +113,7 @@ create index if not exists idx_document_chunks_document
   on public.document_chunks (document_id, chunk_index);
 -- HNSW: usable on empty tables, better recall than ivfflat at this scale.
 create index if not exists idx_document_chunks_embedding
-  on public.document_chunks using hnsw (embedding vector_cosine_ops);
+  on public.document_chunks using hnsw (embedding extensions.vector_cosine_ops);
 
 -- modules: adaptive roadmap steps per class
 create table if not exists public.modules (
@@ -659,9 +661,9 @@ create policy "room_messages_delete_author_or_creator" on public.room_messages
   using (user_id = auth.uid() or public.is_room_creator(room_id));
 
 
--- ============================================================
--- FILE: supabase/migrations/20250921000001_storage_documents.sql
--- ============================================================
+-- =====================================================================
+-- Migration: 20250921000001_storage_documents.sql
+-- =====================================================================
 -- ============================================================================
 -- Storage: private 'documents' bucket for uploaded PDFs (spec section 5/7).
 -- Object path convention: {user_id}/{document_id}.pdf — the first folder is
@@ -711,9 +713,9 @@ create policy "documents_storage_delete_own" on storage.objects
   );
 
 
--- ============================================================
--- FILE: supabase/migrations/20250921000002_auth_role_finalization.sql
--- ============================================================
+-- =====================================================================
+-- Migration: 20250921000002_auth_role_finalization.sql
+-- =====================================================================
 -- ============================================================================
 -- Auth: role selection finalization for OAuth signups (Task 3 — Auth)
 --
@@ -904,9 +906,9 @@ create policy "profiles_update_own" on public.profiles
   with check (id = auth.uid());
 
 
--- ============================================================
--- FILE: supabase/migrations/20250921000003_educator_onboarding.sql
--- ============================================================
+-- =====================================================================
+-- Migration: 20250921000003_educator_onboarding.sql
+-- =====================================================================
 -- ============================================================================
 -- Educator onboarding: subject area on profiles (Task 5)
 --
@@ -937,9 +939,9 @@ as $$
 $$;
 
 
--- ============================================================
--- FILE: supabase/migrations/20250921000004_document_status.sql
--- ============================================================
+-- =====================================================================
+-- Migration: 20250921000004_document_status.sql
+-- =====================================================================
 -- ============================================================================
 -- Documents: processing lifecycle (Task 6)
 --
@@ -981,9 +983,9 @@ end;
 $$;
 
 
--- ============================================================
--- FILE: supabase/migrations/20250921000005_rag_search_function.sql
--- ============================================================
+-- =====================================================================
+-- Migration: 20250921000005_rag_search_function.sql
+-- =====================================================================
 -- ============================================================================
 -- RAG retrieval: class-scoped pgvector similarity search (Task 7)
 --
@@ -1048,9 +1050,9 @@ end
 $do$;
 
 
--- ============================================================
--- FILE: supabase/migrations/20250921000006_tutor_chat.sql
--- ============================================================
+-- =====================================================================
+-- Migration: 20250921000006_tutor_chat.sql
+-- =====================================================================
 -- ============================================================================
 -- AI Tutor chat persistence (Task 8)
 --
@@ -1161,9 +1163,9 @@ create policy "tutor_messages_insert_via_conversation" on public.tutor_messages
   ));
 
 
--- ============================================================
--- FILE: supabase/migrations/20250921000007_flashcards_quizzes.sql
--- ============================================================
+-- =====================================================================
+-- Migration: 20250921000007_flashcards_quizzes.sql
+-- =====================================================================
 -- ============================================================================
 -- Flashcards & quizzes generated from documents (Task 9)
 --
@@ -1403,9 +1405,9 @@ create policy "quiz_questions_insert_via_quiz" on public.quiz_questions
 -- Init already provides select/insert/delete policies scoped to user_id.
 
 
--- ============================================================
--- FILE: supabase/migrations/20250921000008_roadmap.sql
--- ============================================================
+-- =====================================================================
+-- Migration: 20250921000008_roadmap.sql
+-- =====================================================================
 -- ============================================================================
 -- Roadmap & modules (Task 10)
 --
@@ -1487,9 +1489,9 @@ end;
 $$;
 
 
--- ============================================================
--- FILE: supabase/migrations/20250921000009_study_rooms.sql
--- ============================================================
+-- =====================================================================
+-- Migration: 20250921000009_study_rooms.sql
+-- =====================================================================
 -- ============================================================================
 -- Study rooms: core (Task 11)
 --
@@ -1728,9 +1730,9 @@ set invite_code = public.generate_invite_code()
 where invite_code is null;
 
 
--- ============================================================
--- FILE: supabase/migrations/20250921000010_room_activities.sql
--- ============================================================
+-- =====================================================================
+-- Migration: 20250921000010_room_activities.sql
+-- =====================================================================
 -- ============================================================================
 -- Study rooms: shared activities (Task 12)
 --
@@ -2103,9 +2105,9 @@ end;
 $$;
 
 
--- ============================================================
--- FILE: supabase/migrations/20250921000011_gamification.sql
--- ============================================================
+-- =====================================================================
+-- Migration: 20250921000011_gamification.sql
+-- =====================================================================
 -- ============================================================================
 -- Gamification (Task 13)
 --
@@ -2771,9 +2773,9 @@ end;
 $$;
 
 
--- ============================================================
--- FILE: supabase/migrations/20250921000012_lessons_exams.sql
--- ============================================================
+-- =====================================================================
+-- Migration: 20250921000012_lessons_exams.sql
+-- =====================================================================
 -- ============================================================================
 -- Lessons & exams attached to rooms (Task 15 — Educator Dashboard)
 --
@@ -3348,9 +3350,9 @@ create trigger lessons_validate_blocks
   execute function public.validate_lesson_blocks();
 
 
--- ============================================================
--- FILE: supabase/migrations/20250921000013_grading_analytics.sql
--- ============================================================
+-- =====================================================================
+-- Migration: 20250921000013_grading_analytics.sql
+-- =====================================================================
 -- ============================================================================
 -- Grading & analytics (Task 16)
 --
@@ -3530,9 +3532,9 @@ end
 $do$;
 
 
--- ============================================================
--- FILE: supabase/migrations/20250921000014_rename_classes_to_subjects.sql
--- ============================================================
+-- =====================================================================
+-- Migration: 20250921000014_rename_classes_to_subjects.sql
+-- =====================================================================
 -- ============================================================================
 -- Terminology rename (Task 25): classes -> subjects
 --
@@ -3719,6 +3721,7 @@ create policy "topics_delete_via_subject" on public.topics
 -- functions by argument TYPES, not names, so `create or replace` with the
 -- renamed p_subject_id parameter updates the existing function in place
 -- (no stale duplicate to drop).
+drop function if exists public.search_document_chunks(extensions.vector(1024), uuid, int);
 create or replace function public.search_document_chunks(
   p_query_embedding extensions.vector(1024),
   p_subject_id uuid,
@@ -4010,5 +4013,1376 @@ as $$
 $$;revoke execute on function public.get_room_knowledge_gaps(uuid) from anon;
 revoke execute on function public.get_room_knowledge_gaps(uuid) from public;
 
+
+-- =====================================================================
+-- Migration: 20261001000000_room_membership_policy.sql
+-- =====================================================================
+-- ============================================================================
+-- Room membership write protection and authenticated lesson-document reads.
+--
+-- Changes:
+--   * Removes direct self-insertion into arbitrary room_members rows.
+--   * Leaves membership creation to create_room's creator trigger and
+--     join_room_by_code; both are SECURITY DEFINER and run as the table owner.
+--   * Restricts documents_select_lesson_members to authenticated users.
+--
+-- Rollback (intentionally security-preserving):
+--   This drops the explicit denial policy but does NOT restore the former
+--   arbitrary self-join policy. With no INSERT policy, authenticated direct
+--   inserts remain denied. Dropping the lesson-member policy removes that
+--   added read path while retaining owner-private document access.
+--
+--   DROP POLICY IF EXISTS room_members_insert_via_join_flow_only
+--     ON public.room_members;
+--   DROP POLICY IF EXISTS documents_select_lesson_members
+--     ON public.documents;
+--
+-- SQL Editor test (replace USER_A_UUID and USER_B_UUID with two existing
+-- test auth.users UUIDs; this transaction rolls back its test room):
+--
+-- BEGIN;
+-- SET LOCAL ROLE authenticated;
+-- SELECT set_config('request.jwt.claim.sub', 'USER_A_UUID', true);
+-- SELECT set_config('request.jwt.claims',
+--   '{"sub":"USER_A_UUID","role":"authenticated"}', true);
+-- DO $test$
+-- DECLARE v_room_id uuid; v_invite_code text;
+-- BEGIN
+--   SELECT r.room_id INTO v_room_id
+--   FROM public.create_room('RLS membership test') AS r;
+--   SELECT invite_code INTO v_invite_code
+--   FROM public.rooms WHERE id = v_room_id;
+--   IF NOT EXISTS (
+--     SELECT 1 FROM public.room_members
+--     WHERE room_id = v_room_id AND user_id = 'USER_A_UUID'::uuid
+--   ) THEN RAISE EXCEPTION 'FAIL: creator trigger did not add user A'; END IF;
+--
+--   PERFORM set_config('request.jwt.claim.sub', 'USER_B_UUID', true);
+--   PERFORM set_config('request.jwt.claims',
+--     '{"sub":"USER_B_UUID","role":"authenticated"}', true);
+--   BEGIN
+--     INSERT INTO public.room_members (room_id, user_id)
+--     VALUES (v_room_id, auth.uid());
+--     RAISE EXCEPTION 'FAIL: direct membership insert was allowed';
+--   EXCEPTION WHEN insufficient_privilege THEN NULL;
+--   END;
+--
+--   IF public.join_room_by_code(v_invite_code) IS DISTINCT FROM v_room_id THEN
+--     RAISE EXCEPTION 'FAIL: join_room_by_code returned the wrong room';
+--   END IF;
+--   IF NOT EXISTS (
+--     SELECT 1 FROM public.room_members
+--     WHERE room_id = v_room_id AND user_id = 'USER_B_UUID'::uuid
+--   ) THEN RAISE EXCEPTION 'FAIL: invite-code join did not add user B'; END IF;
+-- END;
+-- $test$;
+-- ROLLBACK;
+--
+-- For the lesson-document policy, attach a non-owned test document to a
+-- lesson in a test room; as authenticated user B run
+--   SELECT count(*) FROM public.documents WHERE id = 'TEST_DOCUMENT_UUID';
+-- It must be 0 before B joins and 1 after B joins. Inspect the role scope with
+--   SELECT policyname, roles, cmd FROM pg_policies
+--   WHERE schemaname='public' AND tablename='documents'
+--     AND policyname='documents_select_lesson_members';
+-- Expected roles: {authenticated}. Verify no unsafe insert policy remains:
+--   SELECT policyname, roles, qual, with_check FROM pg_policies
+--   WHERE schemaname='public' AND tablename='room_members' AND cmd='INSERT';
+-- Only room_members_insert_via_join_flow_only with a false check should exist.
+-- ============================================================================
+
+-- Fail safely if an existing database has drifted from the SECURITY DEFINER
+-- insert paths this policy intentionally preserves.
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_proc p
+    join pg_class t on t.oid = 'public.rooms'::regclass
+    where p.oid = 'public.create_room(text)'::regprocedure
+      and p.prosecdef
+      and p.proowner = t.relowner
+  ) then
+    raise exception 'create_room must be SECURITY DEFINER owned by the rooms table owner';
+  end if;
+
+  if not exists (
+    select 1
+    from pg_proc p
+    join pg_class t on t.oid = 'public.room_members'::regclass
+    where p.oid = 'public.handle_new_room()'::regprocedure
+      and p.prosecdef
+      and p.proowner = t.relowner
+  ) then
+    raise exception 'handle_new_room must be SECURITY DEFINER owned by the room_members table owner';
+  end if;
+
+  if not exists (
+    select 1
+    from pg_trigger t
+    where t.tgrelid = 'public.rooms'::regclass
+      and t.tgname = 'on_room_created'
+      and not t.tgisinternal
+      and t.tgfoid = 'public.handle_new_room()'::regprocedure
+  ) then
+    raise exception 'on_room_created trigger must call handle_new_room';
+  end if;
+
+  if not exists (
+    select 1
+    from pg_proc p
+    join pg_class t on t.oid = 'public.room_members'::regclass
+    where p.oid = 'public.join_room_by_code(text)'::regprocedure
+      and p.prosecdef
+      and p.proowner = t.relowner
+  ) then
+    raise exception 'join_room_by_code must be SECURITY DEFINER owned by the room_members table owner';
+  end if;
+
+  if exists (
+    select 1 from pg_class
+    where oid = 'public.room_members'::regclass and relforcerowsecurity
+  ) then
+    raise exception 'room_members has FORCE ROW LEVEL SECURITY; SECURITY DEFINER inserts require an explicit reviewed policy';
+  end if;
+end;
+$$;
+
+-- Replace the unsafe policy. The explicit false policy documents the rule;
+-- SECURITY DEFINER functions owned by the table owner bypass ordinary RLS.
+drop policy if exists room_members_insert_via_join_flow_only
+  on public.room_members;
+create policy room_members_insert_via_join_flow_only
+  on public.room_members
+  for insert to authenticated
+  with check (false);
+
+drop policy if exists room_members_insert_self on public.room_members;
+
+drop policy if exists documents_select_lesson_members on public.documents;
+create policy documents_select_lesson_members on public.documents
+  for select to authenticated
+  using (
+    exists (
+      select 1
+      from public.lesson_documents ld
+      join public.lessons l on l.id = ld.lesson_id
+      where ld.document_id = documents.id
+        and public.is_room_member(l.room_id)
+    )
+  );
+
+
+-- =====================================================================
+-- Migration: 20261001000001_ai_usage_daily.sql
+-- =====================================================================
+-- ============================================================================
+-- Daily AI quota accounting for authenticated users.
+--
+-- Changes:
+--   * Adds ai_usage_daily, readable by its owner and not directly writable by
+--     client roles.
+--   * Adds ai_quota_limits as the single source of truth for per-function caps.
+--     Change a cap with UPDATE public.ai_quota_limits; seed conflicts preserve
+--     operator edits on migration re-runs.
+--   * Adds consume_ai_quota(p_fn, p_max), an atomic SECURITY DEFINER upsert.
+--     p_max is an optional stricter cap; it can never raise the configured
+--     daily limit. The day boundary is UTC.
+--
+-- Rollback order:
+--   First redeploy the pre-quota versions of all six functions so no live
+--   function calls this RPC. Then run:
+--
+--   DROP FUNCTION IF EXISTS public.consume_ai_quota(text, integer);
+--   DROP POLICY IF EXISTS ai_usage_daily_select_own ON public.ai_usage_daily;
+--   DROP TABLE IF EXISTS public.ai_usage_daily;
+--   DROP TABLE IF EXISTS public.ai_quota_limits;
+--
+-- SQL Editor test (replace USER_A_UUID and USER_B_UUID with two existing
+-- test auth.users UUIDs; all writes below roll back):
+--
+-- BEGIN;
+-- SET LOCAL ROLE authenticated;
+-- SELECT set_config('request.jwt.claim.sub', 'USER_A_UUID', true);
+-- SELECT set_config('request.jwt.claims',
+--   '{"sub":"USER_A_UUID","role":"authenticated"}', true);
+-- DO $test$
+-- DECLARE v_count integer; v_visible integer;
+-- BEGIN
+--   v_count := public.consume_ai_quota('tutor-chat', 2);
+--   IF v_count <> 1 THEN RAISE EXCEPTION 'FAIL: first count was %', v_count; END IF;
+--   v_count := public.consume_ai_quota('tutor-chat', 2);
+--   IF v_count <> 2 THEN RAISE EXCEPTION 'FAIL: second count was %', v_count; END IF;
+--   BEGIN
+--     PERFORM public.consume_ai_quota('tutor-chat', 2);
+--     RAISE EXCEPTION 'FAIL: quota did not reject the third call';
+--   EXCEPTION WHEN raise_exception THEN
+--     IF SQLERRM <> 'Daily limit reached' THEN RAISE; END IF;
+--   END;
+--
+--   PERFORM set_config('request.jwt.claim.sub', 'USER_B_UUID', true);
+--   PERFORM set_config('request.jwt.claims',
+--     '{"sub":"USER_B_UUID","role":"authenticated"}', true);
+--   SELECT count(*) INTO v_visible FROM public.ai_usage_daily
+--   WHERE user_id = 'USER_A_UUID'::uuid;
+--   IF v_visible <> 0 THEN RAISE EXCEPTION 'FAIL: user B read user A usage'; END IF;
+--   v_count := public.consume_ai_quota('tutor-chat', 2);
+--   IF v_count <> 1 THEN RAISE EXCEPTION 'FAIL: user B did not get an independent quota'; END IF;
+--
+--   BEGIN
+--     INSERT INTO public.ai_usage_daily (user_id, fn, day, count)
+--     VALUES (auth.uid(), 'rag-search', (now() at time zone 'UTC')::date, 999);
+--     RAISE EXCEPTION 'FAIL: direct quota INSERT was allowed';
+--   EXCEPTION WHEN insufficient_privilege THEN NULL;
+--   END;
+--   BEGIN
+--     UPDATE public.ai_usage_daily SET count = 0 WHERE user_id = auth.uid();
+--     RAISE EXCEPTION 'FAIL: direct quota UPDATE was allowed';
+--   EXCEPTION WHEN insufficient_privilege THEN NULL;
+--   END;
+--   BEGIN
+--     DELETE FROM public.ai_usage_daily WHERE user_id = auth.uid();
+--     RAISE EXCEPTION 'FAIL: direct quota DELETE was allowed';
+--   EXCEPTION WHEN insufficient_privilege THEN NULL;
+--   END;
+-- END;
+-- $test$;
+-- ROLLBACK;
+--
+-- Concurrency test: after the rollback above, open two SQL Editor sessions,
+-- run this in both at nearly the same time (use the same test user's UUID):
+--   BEGIN;
+--   SET LOCAL ROLE authenticated;
+--   SELECT set_config('request.jwt.claim.sub', 'USER_A_UUID', true);
+--   SELECT set_config('request.jwt.claims',
+--     '{"sub":"USER_A_UUID","role":"authenticated"}', true);
+--   SELECT public.consume_ai_quota('rag-search', 1);
+--   COMMIT;
+-- Exactly one returns 1; the other raises 'Daily limit reached'. Repeat with
+-- USER_B_UUID to verify user isolation. With the owner role, inspect the
+-- central caps using SELECT fn, daily_limit FROM public.ai_quota_limits ORDER BY fn;
+-- ============================================================================
+
+create table if not exists public.ai_quota_limits (
+  fn text primary key,
+  daily_limit integer not null check (daily_limit > 0)
+);
+
+insert into public.ai_quota_limits (fn, daily_limit) values
+  ('tutor-chat', 100),
+  ('rag-search', 300),
+  ('process-document', 20),
+  ('generate-roadmap', 10),
+  ('generate-study-materials', 30),
+  ('suggest-exam-feedback', 30)
+on conflict (fn) do nothing;
+
+create table if not exists public.ai_usage_daily (
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  fn text not null references public.ai_quota_limits (fn) on delete cascade,
+  day date not null,
+  count integer not null check (count >= 0),
+  primary key (user_id, fn, day)
+);
+
+alter table public.ai_quota_limits enable row level security;
+alter table public.ai_usage_daily enable row level security;
+
+revoke all privileges on table public.ai_quota_limits from anon, authenticated;
+revoke all privileges on table public.ai_usage_daily from anon, authenticated;
+grant select on table public.ai_usage_daily to authenticated;
+
+drop policy if exists ai_usage_daily_select_own on public.ai_usage_daily;
+create policy ai_usage_daily_select_own on public.ai_usage_daily
+  for select to authenticated
+  using (user_id = auth.uid());
+
+create or replace function public.consume_ai_quota(
+  p_fn text,
+  p_max integer default null
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_fn text := lower(trim(coalesce(p_fn, '')));
+  v_day date := (now() at time zone 'UTC')::date;
+  v_configured_limit integer;
+  v_effective_limit integer;
+  v_count integer;
+begin
+  if v_user_id is null then
+    raise exception 'Not authenticated' using errcode = '28000';
+  end if;
+  if v_fn = '' then
+    raise exception 'AI function name is required' using errcode = '22023';
+  end if;
+  if p_max is not null and p_max < 1 then
+    raise exception 'p_max must be positive when provided' using errcode = '22023';
+  end if;
+
+  select daily_limit into v_configured_limit
+  from public.ai_quota_limits
+  where fn = v_fn;
+
+  if not found then
+    raise exception 'AI quota is not configured for this function' using errcode = '22023';
+  end if;
+
+  v_effective_limit := case
+    when p_max is null then v_configured_limit
+    else least(v_configured_limit, p_max)
+  end;
+
+  -- One conflict-locked upsert serializes concurrent calls for the same
+  -- user/function/day; at the cap, the WHERE clause returns no row.
+  insert into public.ai_usage_daily (user_id, fn, day, count)
+  values (v_user_id, v_fn, v_day, 1)
+  on conflict (user_id, fn, day) do update
+    set count = ai_usage_daily.count + 1
+    where ai_usage_daily.count < v_effective_limit
+  returning count into v_count;
+
+  if not found then
+    raise exception 'Daily limit reached' using errcode = 'P0001';
+  end if;
+
+  return v_count;
+end;
+$$;
+
+revoke all privileges on function public.consume_ai_quota(text, integer) from public;
+grant execute on function public.consume_ai_quota(text, integer) to authenticated;
+
+
+-- =====================================================================
+-- Migration: 20261001000002_document_summary.sql
+-- =====================================================================
+-- ============================================================================
+-- Document summaries (Phase 4 item 2 — DESIGN approved, NOT applied).
+--
+-- Changes:
+--   * Adds four nullable columns to documents for the AI-generated summary:
+--       summary           text      — the stored summary (≤ 2,000 chars)
+--       summary_status    text      — 'pending' | 'ready' | 'failed'
+--       summary_partial   boolean   — true when the summary was built from an
+--                                     even sample of a long document
+--       summary_created_at timestamptz
+--   * Seeds the ai_quota_limits row for the opt-in backfill-summary edge
+--     function (30/day; on conflict preserves operator edits).
+--
+-- Semantics:
+--   summary IS NULL AND status='ready'  => "not summarized yet" (normal state,
+--   not an error). summary_status is independent of documents.status so a
+--   failed summary can never make a working document look broken.
+--
+-- MIGRATION ORDER: apply AFTER all Phase 3 migrations — 20250921000001…14,
+-- then 20261001000000_room_membership_policy.sql, then
+-- 20261001000001_ai_usage_daily.sql (this file's quota seed references
+-- ai_quota_limits, created there), then THIS file.
+--
+-- Rollback:
+--   delete from public.ai_quota_limits where fn = 'backfill-summary';
+--   alter table public.documents
+--     drop column if exists summary_created_at,
+--     drop column if exists summary_partial,
+--     drop column if exists summary_status,
+--     drop column if exists summary;
+--
+-- SQL Editor test (all roll back):
+--   BEGIN;
+--   -- 1) columns exist:
+--   DO $t$ DECLARE n int; BEGIN
+--     SELECT count(*) INTO n FROM information_schema.columns
+--     WHERE table_name='documents'
+--       AND column_name IN ('summary','summary_status','summary_partial','summary_created_at');
+--     IF n <> 4 THEN RAISE EXCEPTION 'FAIL: expected 4 summary columns, got %', n; END IF;
+--   END $t$;
+--   -- 2) existing rows unaffected:
+--   IF EXISTS (SELECT 1 FROM public.documents WHERE summary IS NOT NULL) THEN
+--     RAISE EXCEPTION 'FAIL: summary should be NULL everywhere right after migration';
+--   END IF;
+--   -- 3) check constraint holds:
+--   BEGIN
+--     UPDATE public.documents SET summary_status='broken' WHERE false;
+--     -- (update matches no rows, so this only proves parse; force a real one:)
+--     UPDATE public.documents SET summary_status='broken'
+--     WHERE id = (SELECT id FROM public.documents LIMIT 1);
+--     RAISE EXCEPTION 'FAIL: invalid summary_status was accepted';
+--   EXCEPTION WHEN check_violation THEN NULL;
+--   END;
+--   ROLLBACK;
+--   -- (If there are no documents rows yet, insert a scratch row first inside
+--   -- the transaction to exercise the check constraint.)
+-- ============================================================================
+
+alter table public.documents
+  add column if not exists summary text,
+  add column if not exists summary_status text
+    check (summary_status in ('pending', 'ready', 'failed')),
+  add column if not exists summary_partial boolean,
+  add column if not exists summary_created_at timestamptz;
+
+insert into public.ai_quota_limits (fn, daily_limit) values
+  ('backfill-summary', 30)
+on conflict (fn) do nothing;
+
+
+-- =====================================================================
+-- Migration: 20261003000001_admin_role_enum.sql
+-- =====================================================================
+-- Adds the admin role label. It does not grant admin status to any account.
+alter type public.user_role add value if not exists 'admin';
+
+-- Rollback: PostgreSQL cannot remove an enum value directly. To undo this,
+-- rebuild public.user_role after demoting/removing all admin-role rows.
+
+/* SQL Editor test (run after all three migrations; paste without these comment delimiters).
+begin;
+select set_config('edvira.test_student', (select id::text from public.profiles where role = 'student' limit 1), true);
+select set_config('edvira.test_educator', (select id::text from public.profiles where role = 'educator' limit 1), true);
+select set_config('edvira.test_admin', (select id::text from public.profiles where role = 'admin' limit 1), true);
+do $$ begin
+  if current_setting('edvira.test_student', true) is null
+     or current_setting('edvira.test_educator', true) is null
+     or current_setting('edvira.test_admin', true) is null then
+    raise exception 'Create student, educator, and admin accounts before running this test';
+  end if;
+end $$;
+update public.profiles
+set role = null, role_confirmed_at = null
+where id = current_setting('edvira.test_student')::uuid;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', current_setting('edvira.test_student'), true);
+do $$ begin
+  begin
+    update public.profiles set role = 'admin', role_confirmed_at = now() where id = auth.uid();
+    raise exception 'Self-promotion unexpectedly succeeded';
+  exception when others then
+    if sqlerrm not like 'Only an admin or database owner%' then raise; end if;
+  end;
+end $$;
+do $$ begin
+  begin
+    update public.profiles set role_confirmed_at = now() where id = auth.uid();
+    raise exception 'Direct role_confirmed_at update unexpectedly succeeded';
+  exception when others then
+    if sqlerrm not like 'role_confirmed_at is managed%' then raise; end if;
+  end;
+end $$;
+do $$ begin
+  if exists (select 1 from public.educator_verifications
+             where user_id = current_setting('edvira.test_educator')::uuid) then
+    raise exception 'Student can read another user verification row';
+  end if;
+end $$;
+reset role;
+update public.profiles
+set role = 'admin', role_confirmed_at = now()
+where id = current_setting('edvira.test_student')::uuid;
+do $$ begin
+  if not exists (select 1 from public.profiles
+                 where id = current_setting('edvira.test_student')::uuid and role = 'admin') then
+    raise exception 'Database owner could not assign the admin role';
+  end if;
+end $$;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', current_setting('edvira.test_educator'), true);
+do $$ begin
+  if not exists (select 1 from public.educator_verifications where user_id = auth.uid()) then
+    raise exception 'Educator cannot read their own verification row';
+  end if;
+end $$;
+do $$ begin
+  if exists (select 1 from public.educator_verification_reviewers
+             where user_id = current_setting('edvira.test_educator')::uuid) then
+    raise exception 'Educator can read reviewer identity';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('edvira.test_admin'), true);
+update public.educator_verifications
+set educator_verification_status = 'rejected', educator_reviewed_at = now(),
+    educator_review_note = 'SQL Editor test rejection'
+where user_id = current_setting('edvira.test_educator')::uuid;
+update public.educator_verifications
+set educator_verification_status = 'verified', educator_reviewed_at = now(),
+    educator_review_note = 'SQL Editor test approval'
+where user_id = current_setting('edvira.test_educator')::uuid;
+do $$ begin
+  if not exists (select 1 from public.educator_verifications
+                 where user_id = current_setting('edvira.test_educator')::uuid
+                   and educator_verification_status = 'verified') then
+    raise exception 'Admin could not verify the educator';
+  end if;
+end $$;
+do $$ begin
+  if not exists (select 1 from public.educator_verification_reviewers
+                 where user_id = current_setting('edvira.test_educator')::uuid
+                   and reviewer_id = auth.uid()) then
+    raise exception 'Admin review identity was not recorded';
+  end if;
+end $$;
+rollback;
+*/
+
+
+-- =====================================================================
+-- Migration: 20261003000002_admin_role_policies.sql
+-- =====================================================================
+-- Adds admin detection and admin access to profiles without allowing users
+-- to promote themselves or read private educator verification fields.
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = pg_catalog, public, pg_temp
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role = 'admin'
+  );
+$$;
+
+revoke all on function public.is_admin() from public, anon;
+grant execute on function public.is_admin() to authenticated;
+
+drop policy if exists profiles_select_admin on public.profiles;
+create policy profiles_select_admin on public.profiles
+  for select to authenticated
+  using (public.is_admin());
+
+drop policy if exists profiles_update_admin on public.profiles;
+create policy profiles_update_admin on public.profiles
+  for update to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
+
+-- Rollback (run only after rolling back the educator-verification migration):
+--   drop policy if exists profiles_update_admin on public.profiles;
+--   drop policy if exists profiles_select_admin on public.profiles;
+--   drop function if exists public.is_admin();
+
+/* SQL Editor test (run after all three migrations; paste without these comment delimiters).
+begin;
+select set_config('edvira.test_student', (select id::text from public.profiles where role = 'student' limit 1), true);
+select set_config('edvira.test_educator', (select id::text from public.profiles where role = 'educator' limit 1), true);
+select set_config('edvira.test_admin', (select id::text from public.profiles where role = 'admin' limit 1), true);
+do $$ begin
+  if current_setting('edvira.test_student', true) is null
+     or current_setting('edvira.test_educator', true) is null
+     or current_setting('edvira.test_admin', true) is null then
+    raise exception 'Create student, educator, and admin accounts before running this test';
+  end if;
+end $$;
+update public.profiles
+set role = null, role_confirmed_at = null
+where id = current_setting('edvira.test_student')::uuid;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', current_setting('edvira.test_student'), true);
+do $$ begin
+  begin
+    update public.profiles set role = 'admin', role_confirmed_at = now() where id = auth.uid();
+    raise exception 'Self-promotion unexpectedly succeeded';
+  exception when others then
+    if sqlerrm not like 'Only an admin or database owner%' then raise; end if;
+  end;
+end $$;
+do $$ begin
+  begin
+    update public.profiles set role_confirmed_at = now() where id = auth.uid();
+    raise exception 'Direct role_confirmed_at update unexpectedly succeeded';
+  exception when others then
+    if sqlerrm not like 'role_confirmed_at is managed%' then raise; end if;
+  end;
+end $$;
+do $$ begin
+  if exists (select 1 from public.educator_verifications
+             where user_id = current_setting('edvira.test_educator')::uuid) then
+    raise exception 'Student can read another user verification row';
+  end if;
+end $$;
+reset role;
+update public.profiles
+set role = 'admin', role_confirmed_at = now()
+where id = current_setting('edvira.test_student')::uuid;
+do $$ begin
+  if not exists (select 1 from public.profiles
+                 where id = current_setting('edvira.test_student')::uuid and role = 'admin') then
+    raise exception 'Database owner could not assign the admin role';
+  end if;
+end $$;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', current_setting('edvira.test_educator'), true);
+do $$ begin
+  if not exists (select 1 from public.educator_verifications where user_id = auth.uid()) then
+    raise exception 'Educator cannot read their own verification row';
+  end if;
+end $$;
+do $$ begin
+  if exists (select 1 from public.educator_verification_reviewers
+             where user_id = current_setting('edvira.test_educator')::uuid) then
+    raise exception 'Educator can read reviewer identity';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('edvira.test_admin'), true);
+update public.educator_verifications
+set educator_verification_status = 'rejected', educator_reviewed_at = now(),
+    educator_review_note = 'SQL Editor test rejection'
+where user_id = current_setting('edvira.test_educator')::uuid;
+update public.educator_verifications
+set educator_verification_status = 'verified', educator_reviewed_at = now(),
+    educator_review_note = 'SQL Editor test approval'
+where user_id = current_setting('edvira.test_educator')::uuid;
+do $$ begin
+  if not exists (select 1 from public.educator_verifications
+                 where user_id = current_setting('edvira.test_educator')::uuid
+                   and educator_verification_status = 'verified') then
+    raise exception 'Admin could not verify the educator';
+  end if;
+end $$;
+do $$ begin
+  if not exists (select 1 from public.educator_verification_reviewers
+                 where user_id = current_setting('edvira.test_educator')::uuid
+                   and reviewer_id = auth.uid()) then
+    raise exception 'Admin review identity was not recorded';
+  end if;
+end $$;
+rollback;
+*/
+
+
+-- =====================================================================
+-- Migration: 20261003000003_educator_verification.sql
+-- =====================================================================
+-- Stores educator verification data privately, gates educator writes and
+-- grading on approval, and restricts admin-role assignment.
+
+create table public.educator_verifications (
+  user_id uuid primary key references public.profiles(id) on delete cascade,
+  educator_verification_status text not null default 'pending'
+    check (educator_verification_status in ('pending', 'verified', 'rejected')),
+  educator_institution text,
+  educator_work_email text,
+  educator_evidence_path text,
+  educator_submitted_at timestamptz,
+  educator_reviewed_at timestamptz,
+  educator_review_note text
+);
+
+alter table public.educator_verifications enable row level security;
+revoke all on public.educator_verifications from public, anon, authenticated, service_role;
+grant select (
+  user_id, educator_verification_status, educator_institution, educator_work_email,
+  educator_evidence_path, educator_submitted_at, educator_reviewed_at, educator_review_note
+) on public.educator_verifications to authenticated;
+grant update (
+  educator_verification_status, educator_reviewed_at, educator_review_note
+) on public.educator_verifications to authenticated;
+
+create policy educator_verifications_select_owner on public.educator_verifications
+  for select to authenticated using (user_id = auth.uid());
+create policy educator_verifications_select_admin on public.educator_verifications
+  for select to authenticated using (public.is_admin());
+create policy educator_verifications_update_admin on public.educator_verifications
+  for update to authenticated using (public.is_admin()) with check (public.is_admin());
+
+create table public.educator_verification_reviewers (
+  user_id uuid primary key references public.educator_verifications(user_id) on delete cascade,
+  reviewer_id uuid references public.profiles(id) on delete set null
+);
+alter table public.educator_verification_reviewers enable row level security;
+revoke all on public.educator_verification_reviewers from public, anon, authenticated, service_role;
+grant select on public.educator_verification_reviewers to authenticated;
+create policy educator_verification_reviewers_select_admin on public.educator_verification_reviewers
+  for select to authenticated using (public.is_admin());
+
+create or replace function public.record_educator_verification_reviewer()
+returns trigger
+language plpgsql
+security definer
+set search_path = pg_catalog, public, pg_temp
+as $$
+begin
+  if new.educator_verification_status in ('verified', 'rejected')
+     and new.educator_verification_status is distinct from old.educator_verification_status then
+    insert into public.educator_verification_reviewers (user_id, reviewer_id)
+    values (new.user_id, auth.uid())
+    on conflict (user_id) do update set reviewer_id = excluded.reviewer_id;
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function public.record_educator_verification_reviewer() from public, anon, authenticated, service_role;
+
+create trigger educator_verifications_record_reviewer
+  after update of educator_verification_status on public.educator_verifications
+  for each row execute function public.record_educator_verification_reviewer();
+
+create or replace function public.initialize_educator_verification_status()
+returns trigger
+language plpgsql
+security definer
+set search_path = pg_catalog, public, pg_temp
+as $$
+begin
+  if new.role = 'educator' then
+    insert into public.educator_verifications (user_id)
+    values (new.id)
+    on conflict (user_id) do nothing;
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function public.initialize_educator_verification_status() from public, anon, authenticated, service_role;
+
+drop trigger if exists profiles_educator_verification_insert on public.profiles;
+create trigger profiles_educator_verification_insert
+  after insert on public.profiles
+  for each row execute function public.initialize_educator_verification_status();
+drop trigger if exists profiles_educator_verification_role on public.profiles;
+create trigger profiles_educator_verification_role
+  after update of role on public.profiles
+  for each row execute function public.initialize_educator_verification_status();
+
+insert into public.educator_verifications (user_id)
+select id from public.profiles where role = 'educator'
+on conflict (user_id) do nothing;
+
+-- Signup metadata is untrusted: only student and educator are accepted.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = pg_catalog, public, pg_temp
+as $$
+declare
+  v_role public.user_role;
+begin
+  v_role := case new.raw_user_meta_data ->> 'role'
+    when 'student' then 'student'::public.user_role
+    when 'educator' then 'educator'::public.user_role
+    else null
+  end;
+
+  insert into public.profiles (id, role, role_confirmed_at, display_name, avatar_color)
+  values (
+    new.id,
+    v_role,
+    case when v_role is not null then now() end,
+    coalesce(new.raw_user_meta_data ->> 'display_name', split_part(new.email, '@', 1)),
+    public.avatar_palette_index(new.id)
+  )
+  on conflict (id) do nothing;
+
+  insert into public.gamification (user_id) values (new.id)
+  on conflict (user_id) do nothing;
+
+  return new;
+end;
+$$;
+
+revoke all on function public.handle_new_user() from public, anon, authenticated, service_role;
+
+create or replace function public.guard_profile_admin_role()
+returns trigger
+language plpgsql
+set search_path = pg_catalog, public, pg_temp
+as $$
+begin
+  if new.role = 'admin'
+     and current_user not in ('postgres', 'service_role')
+     and not public.is_admin() then
+    raise exception 'Only an admin or database owner can assign the admin role';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists guard_profile_admin_role on public.profiles;
+create trigger guard_profile_admin_role
+  before insert or update of role on public.profiles
+  for each row execute function public.guard_profile_admin_role();
+
+-- The database owner and service role may bootstrap or repair roles. All other
+-- callers retain the original one-time role lock.
+create or replace function public.enforce_role_lock()
+returns trigger
+language plpgsql
+set search_path = pg_catalog, public, pg_temp
+as $$
+begin
+  if current_user in ('postgres', 'service_role') then
+    return new;
+  end if;
+
+  if tg_op = 'INSERT' then
+    if current_user in ('anon', 'authenticated')
+       or current_user not in (
+         select pg_catalog.pg_get_userbyid(proowner)
+         from pg_catalog.pg_proc
+         where oid in (
+           'public.handle_new_user()'::regprocedure,
+           'public.finalize_role(public.user_role)'::regprocedure
+         )
+       ) then
+      raise exception 'Profile role inserts are restricted to trusted signup/finalization functions';
+    end if;
+    return new;
+  end if;
+
+  if new.role_confirmed_at is distinct from old.role_confirmed_at
+     and new.role is not distinct from old.role then
+    raise exception 'role_confirmed_at is managed by role finalization';
+  end if;
+
+  if new.role = 'admin'
+     and new.role_confirmed_at is not null
+     and public.is_admin() then
+    return new;
+  end if;
+
+  if old.role is null
+     and new.role in ('student', 'educator')
+     and (current_user in ('anon', 'authenticated') or current_user <> (
+       select pg_catalog.pg_get_userbyid(proowner)
+       from pg_catalog.pg_proc
+       where oid = 'public.finalize_role(public.user_role)'::regprocedure
+     )) then
+    raise exception 'Role must be assigned by finalize_role';
+  end if;
+
+  if new.role is not null and new.role_confirmed_at is null then
+    raise exception 'Role change requires explicit confirmation (role_confirmed_at)';
+  end if;
+
+  if tg_op = 'UPDATE' and old.role is not null and new.role is distinct from old.role then
+    raise exception 'Role is permanently locked after signup';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists enforce_role_lock on public.profiles;
+create trigger enforce_role_lock
+  before insert or update on public.profiles
+  for each row execute function public.enforce_role_lock();
+
+create or replace function public.is_verified_educator()
+returns boolean
+language sql
+stable
+security definer
+set search_path = pg_catalog, public, pg_temp
+as $$
+  select exists (
+    select 1
+    from public.profiles p
+    join public.educator_verifications v on v.user_id = p.id
+    where p.id = auth.uid()
+      and p.role = 'educator'
+      and v.educator_verification_status = 'verified'
+  );
+$$;
+
+revoke all on function public.is_verified_educator() from public, anon;
+grant execute on function public.is_verified_educator() to authenticated;
+
+create or replace function public.guard_educator_verification_fields()
+returns trigger
+language plpgsql
+set search_path = pg_catalog, public, pg_temp
+as $$
+begin
+  if current_user in ('postgres', 'service_role') or auth.uid() is null then
+    return new;
+  end if;
+  if current_user = pg_get_userbyid((
+    select proowner
+    from pg_catalog.pg_proc
+    where oid = 'public.submit_educator_verification(text,text,text,text,text)'::regprocedure
+  )) then
+    return new;
+  end if;
+  if public.is_admin() then
+    return new;
+  end if;
+
+  if new.educator_verification_status is distinct from old.educator_verification_status
+     and new.educator_verification_status is distinct from 'pending' then
+    raise exception 'Only an admin can approve or reject educator verification';
+  end if;
+
+  if new.educator_reviewed_at is distinct from old.educator_reviewed_at
+     or new.educator_review_note is distinct from old.educator_review_note then
+    raise exception 'Only an admin can update educator review details';
+  end if;
+
+  if old.educator_verification_status = 'verified'
+     and (new.educator_verification_status is distinct from old.educator_verification_status
+       or new.educator_institution is distinct from old.educator_institution
+       or new.educator_work_email is distinct from old.educator_work_email
+       or new.educator_evidence_path is distinct from old.educator_evidence_path
+       or new.educator_submitted_at is distinct from old.educator_submitted_at) then
+    raise exception 'Verified educator details cannot be changed';
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger educator_verifications_guard_update
+  before update on public.educator_verifications
+  for each row execute function public.guard_educator_verification_fields();
+
+create or replace function public.submit_educator_verification(
+  p_display_name text,
+  p_subject_area text,
+  p_institution text,
+  p_work_email text,
+  p_evidence_path text
+)
+returns void
+language plpgsql
+security definer
+set search_path = pg_catalog, public, storage, pg_temp
+as $$
+declare
+  caller_id uuid := auth.uid();
+begin
+  if caller_id is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  if not exists (
+    select 1 from public.profiles p
+    left join public.educator_verifications v on v.user_id = p.id
+    where p.id = caller_id and p.role = 'educator'
+      and coalesce(v.educator_verification_status, 'pending') <> 'verified'
+  ) then
+    raise exception 'This account cannot submit educator verification';
+  end if;
+
+  if length(trim(coalesce(p_display_name, ''))) not between 1 and 60
+     or length(trim(coalesce(p_subject_area, ''))) not between 1 and 80
+     or length(trim(coalesce(p_institution, ''))) not between 2 and 160
+     or length(trim(coalesce(p_work_email, ''))) not between 5 and 254
+     or p_work_email !~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$' then
+    raise exception 'Complete all educator verification fields with valid values';
+  end if;
+
+  if p_evidence_path is null
+     or split_part(p_evidence_path, '/', 1) <> caller_id::text
+     or not exists (
+       select 1 from storage.objects
+       where bucket_id = 'educator-verification' and name = p_evidence_path
+     ) then
+    raise exception 'Upload your supporting evidence before submitting';
+  end if;
+
+  update public.profiles
+  set display_name = trim(p_display_name), subject_area = trim(p_subject_area)
+  where id = caller_id;
+
+  insert into public.educator_verifications (
+    user_id, educator_institution, educator_work_email, educator_evidence_path,
+    educator_submitted_at, educator_verification_status, educator_reviewed_at, educator_review_note
+  ) values (
+    caller_id, trim(p_institution), lower(trim(p_work_email)), p_evidence_path,
+    now(), 'pending', null, null
+  )
+  on conflict (user_id) do update set
+    educator_institution = excluded.educator_institution,
+    educator_work_email = excluded.educator_work_email,
+    educator_evidence_path = excluded.educator_evidence_path,
+    educator_submitted_at = excluded.educator_submitted_at,
+    educator_verification_status = 'pending',
+    educator_reviewed_at = null,
+    educator_review_note = null;
+end;
+$$;
+
+revoke all on function public.submit_educator_verification(text, text, text, text, text) from public, anon;
+grant execute on function public.submit_educator_verification(text, text, text, text, text) to authenticated;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('educator-verification', 'educator-verification', false, 5242880,
+        array['application/pdf', 'image/jpeg', 'image/png'])
+on conflict (id) do update set
+  public = false, file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists educator_evidence_select_owner_or_admin on storage.objects;
+create policy educator_evidence_select_owner_or_admin on storage.objects
+  for select to authenticated using (
+    bucket_id = 'educator-verification'
+    and ((storage.foldername(name))[1] = auth.uid()::text or public.is_admin())
+  );
+drop policy if exists educator_evidence_insert_owner on storage.objects;
+create policy educator_evidence_insert_owner on storage.objects
+  for insert to authenticated with check (
+    bucket_id = 'educator-verification'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+drop policy if exists educator_evidence_update_owner on storage.objects;
+create policy educator_evidence_update_owner on storage.objects
+  for update to authenticated
+  using (bucket_id = 'educator-verification' and (storage.foldername(name))[1] = auth.uid()::text)
+  with check (bucket_id = 'educator-verification' and (storage.foldername(name))[1] = auth.uid()::text);
+drop policy if exists educator_evidence_delete_owner on storage.objects;
+create policy educator_evidence_delete_owner on storage.objects
+  for delete to authenticated using (
+    bucket_id = 'educator-verification'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+create or replace function public.enforce_verified_educator_room()
+returns trigger
+language plpgsql
+security definer
+set search_path = pg_catalog, public, pg_temp
+as $$
+begin
+  if new.creator_role = 'educator' and not exists (
+    select 1
+    from public.profiles p
+    join public.educator_verifications v on v.user_id = p.id
+    where p.id = new.created_by and p.role = 'educator'
+      and v.educator_verification_status = 'verified'
+  ) then
+    raise exception 'Educator verification is required to create teacher rooms';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists rooms_require_verified_educator on public.rooms;
+drop trigger if exists rooms_require_verified_educator_insert on public.rooms;
+create trigger rooms_require_verified_educator_insert
+  before insert on public.rooms
+  for each row execute function public.enforce_verified_educator_room();
+drop trigger if exists rooms_require_verified_educator_update on public.rooms;
+create trigger rooms_require_verified_educator_update
+  before update of creator_role, created_by on public.rooms
+  for each row execute function public.enforce_verified_educator_room();
+
+drop policy if exists rooms_insert_own on public.rooms;
+create policy rooms_insert_own on public.rooms
+  for insert to authenticated with check (
+    created_by = auth.uid()
+    and creator_role = (select role from public.profiles where id = auth.uid())
+    and (creator_role <> 'educator' or public.is_verified_educator())
+  );
+drop policy if exists rooms_update_creator on public.rooms;
+create policy rooms_update_creator on public.rooms
+  for update to authenticated
+  using (created_by = auth.uid() and (creator_role <> 'educator' or public.is_verified_educator()))
+  with check (created_by = auth.uid() and (creator_role <> 'educator' or public.is_verified_educator()));
+drop policy if exists rooms_delete_creator on public.rooms;
+create policy rooms_delete_creator on public.rooms
+  for delete to authenticated using (
+    created_by = auth.uid() and (creator_role <> 'educator' or public.is_verified_educator())
+  );
+
+drop policy if exists lessons_insert_creator on public.lessons;
+create policy lessons_insert_creator on public.lessons
+  for insert to authenticated with check (
+    public.is_room_creator(room_id) and created_by = auth.uid() and public.is_verified_educator()
+  );
+drop policy if exists lessons_update_creator on public.lessons;
+create policy lessons_update_creator on public.lessons
+  for update to authenticated
+  using (created_by = auth.uid() and public.is_verified_educator() and public.is_room_creator(room_id))
+  with check (created_by = auth.uid() and public.is_verified_educator() and public.is_room_creator(room_id));
+drop policy if exists lessons_delete_creator on public.lessons;
+create policy lessons_delete_creator on public.lessons
+  for delete to authenticated using (created_by = auth.uid() and public.is_verified_educator());
+
+drop policy if exists lesson_documents_write_creator on public.lesson_documents;
+create policy lesson_documents_write_creator on public.lesson_documents
+  for insert to authenticated with check (
+    public.is_verified_educator()
+    and exists (select 1 from public.lessons l where l.id = lesson_id and l.created_by = auth.uid())
+  );
+drop policy if exists lesson_documents_delete_creator on public.lesson_documents;
+create policy lesson_documents_delete_creator on public.lesson_documents
+  for delete to authenticated using (
+    public.is_verified_educator()
+    and exists (select 1 from public.lessons l where l.id = lesson_id and l.created_by = auth.uid())
+  );
+
+drop policy if exists exams_insert_creator on public.exams;
+create policy exams_insert_creator on public.exams
+  for insert to authenticated with check (
+    public.is_room_creator(room_id) and created_by = auth.uid() and public.is_verified_educator()
+  );
+drop policy if exists exams_update_creator on public.exams;
+create policy exams_update_creator on public.exams
+  for update to authenticated
+  using (created_by = auth.uid() and public.is_verified_educator() and public.is_room_creator(room_id))
+  with check (created_by = auth.uid() and public.is_verified_educator() and public.is_room_creator(room_id));
+drop policy if exists exams_delete_creator on public.exams;
+create policy exams_delete_creator on public.exams
+  for delete to authenticated using (created_by = auth.uid() and public.is_verified_educator());
+
+drop policy if exists exam_questions_creator_all on public.exam_questions;
+create policy exam_questions_creator_all on public.exam_questions
+  for all to authenticated
+  using (public.is_verified_educator() and exists (
+    select 1 from public.exams e where e.id = exam_id and e.created_by = auth.uid()
+  ))
+  with check (public.is_verified_educator() and exists (
+    select 1 from public.exams e where e.id = exam_id and e.created_by = auth.uid()
+  ));
+
+drop policy if exists exam_attempts_select_examiner on public.exam_attempts;
+create policy exam_attempts_select_examiner on public.exam_attempts
+  for select to authenticated using (
+    public.is_verified_educator()
+    and exists (select 1 from public.exams e where e.id = exam_id and e.created_by = auth.uid())
+  );
+drop policy if exists exam_attempts_update_examiner on public.exam_attempts;
+create policy exam_attempts_update_examiner on public.exam_attempts
+  for update to authenticated
+  using (public.is_verified_educator() and exists (
+    select 1 from public.exams e where e.id = exam_id and e.created_by = auth.uid()
+  ))
+  with check (public.is_verified_educator() and exists (
+    select 1 from public.exams e where e.id = exam_id and e.created_by = auth.uid()
+  ));
+drop policy if exists exam_answers_select_examiner on public.exam_answers;
+create policy exam_answers_select_examiner on public.exam_answers
+  for select to authenticated using (
+    public.is_verified_educator() and exists (
+      select 1 from public.exam_attempts a
+      join public.exams e on e.id = a.exam_id
+      where a.id = attempt_id and e.created_by = auth.uid()
+    )
+  );
+
+-- This preserves the earlier grading function body; verification is the only
+-- added check. The maximum-grade validation is unchanged.
+create or replace function public.finalize_exam_grade(
+  p_attempt_id uuid,
+  p_grade int,
+  p_feedback text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_exam uuid;
+  v_max int;
+begin
+  if auth.uid() is null then
+    raise exception 'Not authenticated';
+  end if;
+  if not public.is_verified_educator() then
+    raise exception 'Educator verification is required to grade exams';
+  end if;
+  if p_grade is null or p_grade < 0 then
+    raise exception 'Grade must be a non-negative number';
+  end if;
+
+  select e.id, coalesce(sum(q.points), 0)
+  into v_exam, v_max
+  from public.exam_attempts a
+  join public.exams e on e.id = a.exam_id
+  left join public.exam_questions q on q.exam_id = e.id
+  where a.id = p_attempt_id
+    and e.created_by = auth.uid()
+  group by e.id;
+
+  if v_exam is null then
+    raise exception 'Attempt not found';
+  end if;
+  if p_grade > v_max then
+    raise exception 'Grade cannot exceed the exam maximum (%)', v_max;
+  end if;
+
+  update public.exam_attempts
+  set final_grade = p_grade,
+      final_feedback = nullif(trim(coalesce(p_feedback, '')), ''),
+      graded_at = now()
+  where id = p_attempt_id;
+end;
+$$;
+
+do $$
+declare
+  grading_owner name;
+begin
+  select r.rolname into grading_owner
+  from pg_catalog.pg_proc f
+  join pg_catalog.pg_roles r on r.oid = f.proowner
+  where f.oid = 'public.finalize_exam_grade(uuid,integer,text)'::regprocedure;
+  execute format(
+    'grant execute on function public.is_verified_educator() to %I',
+    grading_owner
+  );
+end $$;
+
+-- Rollback: this removes verification data and restores the earlier signup,
+-- grading, room and write-policy definitions. Export any needed verification
+-- records first; restore the old function/policy bodies from migrations
+-- 20250921000002, 20250921000012 and 20250921000013 before dropping the table.
+-- Existing SELECT policies on rooms, lessons, exams, lesson_documents,
+-- exam_attempts and exam_answers are deliberately not dropped here.
+-- Also drop educator_verifications_record_reviewer, record_educator_verification_reviewer(),
+-- educator_verification_reviewers and educator_verifications during rollback.
+
+/* SQL Editor test (run after all three migrations; uses existing role accounts).
+begin;
+select set_config('edvira.test_student', (select id::text from public.profiles where role = 'student' limit 1), true);
+select set_config('edvira.test_educator', (select id::text from public.profiles where role = 'educator' limit 1), true);
+select set_config('edvira.test_admin', (select id::text from public.profiles where role = 'admin' limit 1), true);
+do $$ begin
+  if current_setting('edvira.test_student', true) is null
+     or current_setting('edvira.test_educator', true) is null
+     or current_setting('edvira.test_admin', true) is null then
+    raise exception 'Create student, educator, and admin accounts before running this test';
+  end if;
+end $$;
+update public.profiles
+set role = null, role_confirmed_at = null
+where id = current_setting('edvira.test_student')::uuid;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', current_setting('edvira.test_student'), true);
+-- profiles_update_own and its WITH CHECK admit this own-row update; the
+-- expected error must therefore come from guard_profile_admin_role().
+do $$ begin
+  begin
+    update public.profiles set role = 'admin', role_confirmed_at = now() where id = auth.uid();
+    raise exception 'Self-promotion unexpectedly succeeded';
+  exception when others then
+    if sqlerrm not like 'Only an admin or database owner%' then raise; end if;
+  end;
+end $$;
+select public.finalize_role('student'::public.user_role);
+do $$ begin
+  if not exists (select 1 from public.profiles
+                 where id = auth.uid() and role = 'student' and role_confirmed_at is not null) then
+    raise exception 'finalize_role could not complete NULL-to-student selection';
+  end if;
+end $$;
+do $$ begin
+  begin
+    update public.profiles set role_confirmed_at = now() + interval '1 second' where id = auth.uid();
+    raise exception 'Direct role_confirmed_at update unexpectedly succeeded';
+  exception when others then
+    if sqlerrm not like 'role_confirmed_at is managed%' then raise; end if;
+  end;
+end $$;
+do $$ begin
+  if exists (select 1 from public.educator_verifications
+             where user_id = current_setting('edvira.test_educator')::uuid) then
+    raise exception 'Student can read another user verification row';
+  end if;
+end $$;
+reset role;
+update public.profiles
+set role = 'admin', role_confirmed_at = now()
+where id = current_setting('edvira.test_student')::uuid;
+do $$ begin
+  if not exists (select 1 from public.profiles
+                 where id = current_setting('edvira.test_student')::uuid and role = 'admin') then
+    raise exception 'Database owner could not assign the admin role';
+  end if;
+end $$;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', current_setting('edvira.test_educator'), true);
+do $$ begin
+  if not exists (select 1 from public.educator_verifications where user_id = auth.uid()) then
+    raise exception 'Educator cannot read their own verification row';
+  end if;
+end $$;
+do $$
+declare
+  changed_rows integer;
+begin
+  update public.educator_verifications
+  set educator_verification_status = case
+    when educator_verification_status = 'verified' then 'rejected'
+    else 'verified'
+  end
+  where user_id = auth.uid();
+  get diagnostics changed_rows = row_count;
+  if changed_rows <> 0 then
+    raise exception 'Educator changed admin review status';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('edvira.test_admin'), true);
+update public.educator_verifications
+set educator_verification_status = 'rejected', educator_reviewed_at = now(),
+    educator_review_note = 'SQL Editor test rejection'
+where user_id = current_setting('edvira.test_educator')::uuid;
+update public.educator_verifications
+set educator_verification_status = 'verified', educator_reviewed_at = now(),
+    educator_review_note = 'SQL Editor test approval'
+where user_id = current_setting('edvira.test_educator')::uuid;
+do $$ begin
+  if not exists (select 1 from public.educator_verifications
+                 where user_id = current_setting('edvira.test_educator')::uuid
+                   and educator_verification_status = 'verified') then
+    raise exception 'Admin could not verify the educator';
+  end if;
+end $$;
+do $$ begin
+  if not exists (select 1 from public.educator_verification_reviewers
+                 where user_id = current_setting('edvira.test_educator')::uuid
+                   and reviewer_id = auth.uid()) then
+    raise exception 'Admin review identity was not recorded';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('edvira.test_educator'), true);
+do $$ begin
+  if exists (select 1 from public.educator_verification_reviewers
+             where user_id = current_setting('edvira.test_educator')::uuid) then
+    raise exception 'Educator can read reviewer identity';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', current_setting('edvira.test_admin'), true);
+update public.profiles
+set role = 'admin', role_confirmed_at = coalesce(role_confirmed_at, now())
+where id = current_setting('edvira.test_educator')::uuid;
+do $$ begin
+  if not exists (select 1 from public.profiles
+                 where id = current_setting('edvira.test_educator')::uuid and role = 'admin')
+     or not exists (select 1 from public.educator_verifications
+                    where user_id = current_setting('edvira.test_educator')::uuid
+                      and educator_verification_status = 'verified')
+     or not exists (select 1 from public.educator_verification_reviewers
+                    where user_id = current_setting('edvira.test_educator')::uuid
+                      and reviewer_id = current_setting('edvira.test_admin')::uuid) then
+    raise exception 'Admin promotion did not preserve educator verification history';
+  end if;
+end $$;
+reset role;
+update public.profiles
+set role = 'student', role_confirmed_at = now()
+where id = current_setting('edvira.test_student')::uuid;
+update public.profiles
+set role = 'educator', role_confirmed_at = now()
+where id = current_setting('edvira.test_educator')::uuid;
+do $$ begin
+  if not exists (select 1 from public.profiles
+                 where id = current_setting('edvira.test_student')::uuid and role = 'student') then
+    raise exception 'Test student role was not restored before rollback';
+  end if;
+  if not exists (select 1 from public.profiles
+                 where id = current_setting('edvira.test_educator')::uuid and role = 'educator') then
+    raise exception 'Test educator role was not restored before rollback';
+  end if;
+end $$;
+rollback;
+*/
 
 

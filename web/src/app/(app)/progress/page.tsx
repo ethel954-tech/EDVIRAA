@@ -84,7 +84,7 @@ export default async function ProgressPage() {
       )
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(12),
+      .limit(5),
   ]);
 
   const subjectList = subjectsRes.data ?? [];
@@ -155,19 +155,22 @@ export default async function ProgressPage() {
   }
 
   // ---- Weak spots from the error journal ----
-  const weakSpots: WeakSpot[] = ((journalRes.data ?? []) as unknown as JournalRow[]).map((e) => {
-    const quiz = Array.isArray(e.quizzes) ? e.quizzes[0] : null;
-    const doc = quiz?.documents ?? null;
-    return {
-      id: e.id as string,
-      question: e.question as string,
-      correct: e.correct_answer as string,
-      given: (e.user_answer as string) ?? "(no answer)",
-      when: String(e.created_at ?? ""),
-      subjectId: (doc?.subject_id as string | null) ?? null,
-      documentTitle: (doc?.title as string | null) ?? null,
-    };
-  });
+  const weakSpots: WeakSpot[] = ((journalRes.data ?? []) as unknown as JournalRow[])
+    .map((e) => {
+      const quiz = Array.isArray(e.quizzes) ? e.quizzes[0] : null;
+      const doc = quiz?.documents ?? null;
+      return {
+        id: e.id as string,
+        question: e.question as string,
+        correct: e.correct_answer as string,
+        given: (e.user_answer as string) ?? "(no answer)",
+        when: String(e.created_at ?? ""),
+        subjectId: (doc?.subject_id as string | null) ?? null,
+        documentTitle: (doc?.title as string | null) ?? null,
+      };
+    })
+    .sort((a, b) => new Date(b.when).getTime() - new Date(a.when).getTime())
+    .slice(0, 4);
 
   const data: ProgressData = {
     xpTotal: Number(gamification.data?.xp ?? 0),

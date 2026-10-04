@@ -37,6 +37,10 @@ export function ProgressView({ data }: { data: ProgressData }) {
       ? Math.round((data.totals.topicsDone / data.totals.topicsTotal) * 100)
       : 74;
 
+  const visibleWeakSpots = data.weakSpots.slice(0, 4);
+  const compactQuestion = (question: string) =>
+    question.length > 90 ? `${question.slice(0, 87)}...` : question;
+
   const sparkPoints = data.trend.slice(-7).map((t, i) => {
     const x = i * 30 + 10;
     const maxXP = Math.max(...data.trend.slice(-7).map((d) => d.xp), 100);
@@ -122,17 +126,19 @@ export function ProgressView({ data }: { data: ProgressData }) {
           Weak spots
         </h3>
         <div className="divide-y divide-[var(--border)] text-[13.5px]">
-          {data.weakSpots.length === 0 ? (
+          {visibleWeakSpots.length === 0 ? (
             <div className="py-3 text-[var(--ink-soft)]">
               No weak spots detected — great job on your quizzes!
             </div>
           ) : (
-            data.weakSpots.map((spot) => (
-              <div key={spot.id} className="flex items-center justify-between py-2.5">
-                <span className="text-[var(--ink)] truncate max-w-[80%]">{spot.question}</span>
+            visibleWeakSpots.map((spot) => (
+              <div key={spot.id} className="flex items-center justify-between gap-3 py-2.5">
+                <span className="text-[var(--ink)] max-w-[78%] truncate">
+                  {compactQuestion(spot.question)}
+                </span>
                 <Link
                   href={reviewHref(spot)}
-                  className="text-[12.5px] font-semibold text-[var(--violet)] hover:underline shrink-0 ml-2"
+                  className="text-[12.5px] font-semibold text-[var(--violet)] hover:underline shrink-0"
                 >
                   Review →
                 </Link>
