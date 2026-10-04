@@ -55,9 +55,14 @@ export function CreateRoomDialog({ compact }: { compact?: boolean }) {
     setError(null);
     try {
       const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError("Please sign in again.");
+        return;
+      }
       const { error } = await supabase
         .from("rooms")
-        .insert({ name: trimmed, type, creator_role: "educator" });
+        .insert({ name: trimmed, type, creator_role: "educator", created_by: user.id });
 
       if (error) {
         setError(error.message);
