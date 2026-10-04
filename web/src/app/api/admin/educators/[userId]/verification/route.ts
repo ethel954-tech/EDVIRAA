@@ -71,27 +71,50 @@ export async function PATCH(
     );
   }
 
-  const { data: evidence, error: evidenceError } = await supabase.storage
-    .from("educator-verification")
-    .createSignedUrl(application.educator_evidence_path, 60);
-  if (evidenceError || !evidence?.signedUrl) {
-    return NextResponse.json(
-      { error: "The submitted evidence is unavailable; the application was not changed." },
-      { status: 409 },
-    );
+  // Only approving grants access, so the evidence must still be readable then;
+  // a rejection can be recorded even if the file has since gone missing.
+  if (body.decision === "verified") {
+    const { data: evidence, error: evidenceError } = await supabase.storage
+      .from("educator-verification")
+      .createSignedUrl(application.educator_evidence_path, 60);
+    if (evidenceError || !evidence?.signedUrl) {
+      return NextResponse.json(
+        { error: "The submitted evidence is unavailable; the application was not changed." },
+        { status: 409 },
+      );
+    }
   }
 
-  const { error } = await supabase
+  // Guard the transition with the same pending precondition we just read so a
+  // concurrent review (or a retry) can't overwrite an already-decided row.
+  const { data: updated, error } = await supabase
     .from("educator_verifications")
     .update({
       educator_verification_status: body.decision,
       educator_reviewed_at: new Date().toISOString(),
       educator_review_note: note || null,
     })
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .eq("educator_verification_status", "pending")
+    .select("user_id");
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    console.error("Failed to update educator verification", {
+      userId,
+      decision: body.decision,
+      code: error.code,
+    });
+    return NextResponse.json(
+      { error: "The application could not be updated. Please try again." },
+      { status: 400 },
+    );
+  }
+
+  if (!updated || updated.length === 0) {
+    return NextResponse.json(
+      { error: "This educator application is no longer awaiting review." },
+      { status: 409 },
+    );
   }
 
   return NextResponse.json({ userId, status: body.decision });
