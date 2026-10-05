@@ -15,6 +15,8 @@ import { User, LogOut, X, Shield, BookOpen } from 'lucide-react-native';
 export default function SettingsScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [userEmail, setUserEmail] = useState<string>('');
 
@@ -24,18 +26,22 @@ export default function SettingsScreen() {
 
   async function loadUserProfile() {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
       if (user) {
         setUserEmail(user.email || '');
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
+        if (error) throw error;
         setProfile(data);
       }
-    } catch {
-      // Graceful fallback
+      setLoadError(null);
+    } catch (e) {
+      console.error('[settings] loadUserProfile failed', e);
+      setLoadError('Could not load your account details. Check your connection and reopen Settings.');
     } finally {
       setLoading(false);
     }
@@ -48,8 +54,17 @@ export default function SettingsScreen() {
         text: 'Sign Out',
         style: 'destructive',
         onPress: async () => {
-          await supabase.auth.signOut();
-          router.replace('/(auth)/sign-in');
+          setSigningOut(true);
+          try {
+            const { error } = await supabase.auth.signOut();
+            if (error) throw error;
+            router.replace('/(auth)/sign-in');
+          } catch (e) {
+            console.error('[settings] signOut failed', e);
+            Alert.alert('Could not sign out', 'Check your connection and try again.');
+          } finally {
+            setSigningOut(false);
+          }
         },
       },
     ]);
@@ -68,6 +83,14 @@ export default function SettingsScreen() {
         <ActivityIndicator size="small" color={colors.teal} style={{ marginTop: 40 }} />
       ) : (
         <View style={styles.content}>
+          {loadError ? (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorText}>{loadError}</Text>
+              <TouchableOpacity onPress={loadUserProfile}>
+                <Text style={styles.retryText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
           <View style={styles.profileCard}>
             <View style={styles.avatarCircle}>
               <User size={28} color={colors.tealDark} />
@@ -98,9 +121,17 @@ export default function SettingsScreen() {
             ) : null}
           </View>
 
-          <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
-            <LogOut size={18} color={colors.danger} />
-            <Text style={styles.signOutText}>Sign Out</Text>
+          <TouchableOpacity
+            style={styles.signOutBtn}
+            onPress={handleSignOut}
+            disabled={signingOut}
+          >
+            {signingOut ? (
+              <ActivityIndicator size="small" color={colors.danger} />
+            ) : (
+              <LogOut size={18} color={colors.danger} />
+            )}
+            <Text style={styles.signOutText}>{signingOut ? 'Signing out…' : 'Sign Out'}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -210,4 +241,15 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
+  errorBanner: {
+    padding: 12,
+    borderRadius: radius.md,
+    backgroundColor: colors.dangerPale,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  errorText: { fontSize: 13, color: colors.danger, flex: 1 },
+  retryText: { fontSize: 13, fontWeight: '700', color: colors.teal },
 });

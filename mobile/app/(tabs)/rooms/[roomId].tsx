@@ -31,14 +31,23 @@ export default function RoomDetailScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     if (!roomId) return;
+    void supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
     loadMessages();
     loadRoomInfo();
 
-    // Supabase Realtime Subscription (Task 22)
+    // Supabase Realtime Subscription (Task 22). Our own sends are delivered
+    // by both the realtime INSERT and nothing else (we no longer append
+    // locally), so no dedupe would be needed for us — but other devices in
+    // the same room could echo the same row via different channels, and
+    // rapid double-sends can race, so dedupe by message id anyway.
     const channel = supabase
       .channel(`room:${roomId}`)
       .on(
@@ -46,7 +55,9 @@ export default function RoomDetailScreen() {
         { event: 'INSERT', schema: 'public', table: 'room_messages', filter: `room_id=eq.${roomId}` },
         (payload) => {
           const newMsg = payload.new as Message;
-          setMessages((prev) => [...prev, newMsg]);
+          setMessages((prev) =>
+            prev.some((m) => m.id === newMsg.id) ? prev : [...prev, newMsg],
+          );
         }
       )
       .subscribe();
@@ -58,64 +69,74 @@ export default function RoomDetailScreen() {
 
   async function loadRoomInfo() {
     try {
-      const { data: room } = await supabase
+      const { data: room, error: roomError } = await supabase
         .from('rooms')
         .select('name')
         .eq('id', roomId)
         .single();
+      if (roomError) throw roomError;
       if (room?.name) setRoomName(room.name);
 
-      const { count } = await supabase
+      const { count, error: countError } = await supabase
         .from('room_members')
         .select('user_id', { count: 'exact', head: true })
         .eq('room_id', roomId);
+      if (countError) throw countError;
       if (count != null) setMemberCount(count);
-    } catch {
-      // Keep fallback header values on error
+    } catch (e) {
+      // Header shows fallback values; the user still gets an explanation.
+      console.error('[room] loadRoomInfo failed', e);
+      setLoadError('Could not load room details. Reopen this room to retry.');
     }
   }
 
   async function loadMessages() {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('room_messages')
         .select('*')
         .eq('room_id', roomId)
         .order('created_at', { ascending: true })
         .limit(50);
 
-      if (data && data.length > 0) {
-        setMessages(data);
-      }
-    } catch {
-      // Use preview data on error
+      if (error) throw error;
+      setMessages(data ?? []);
+      setLoadError(null);
+    } catch (e) {
+      console.error('[room] loadMessages failed', e);
+      setLoadError('Could not load the chat history. Check your connection and reopen this room.');
     }
   }
 
   async function handleSend() {
     const text = input.trim();
-    if (!text) return;
+    if (!text || sending) return;
+    setSending(true);
+    setSendError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) {
+        setSendError('You are signed out. Log in again to send messages.');
+        return;
+      }
 
-      setInput('');
+      // Only clear the input after the insert succeeds, so a failure keeps
+      // the typed text for retry. The message itself appears via realtime.
       const { error } = await supabase.from('room_messages').insert({
         room_id: roomId,
         user_id: user.id,
         content: text,
       });
+      if (error) throw error;
 
-      if (error) {
-        // Fallback local append if DB table not populated
-        setMessages((prev) => [
-          ...prev,
-          { id: Date.now().toString(), user_id: user.id, content: text, created_at: new Date().toISOString() },
-        ]);
-      }
-    } catch {
-      // Graceful catch
+      setInput('');
+    } catch (e) {
+      console.error('[room] message send failed', e);
+      setSendError('Message not sent. Check your connection and try again.');
+    } finally {
+      setSending(false);
     }
   }
 
@@ -146,6 +167,15 @@ export default function RoomDetailScreen() {
         contentContainerStyle={styles.content}
         onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
       >
+        {loadError ? (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>{loadError}</Text>
+            <TouchableOpacity onPress={() => { loadMessages(); loadRoomInfo(); }}>
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
         {/* Realtime Chat Thread */}
         {messages.length === 0 ? (
           <View style={styles.emptyChat}>
@@ -155,7 +185,7 @@ export default function RoomDetailScreen() {
           </View>
         ) : null}
         {messages.map((m) => {
-          const isMe = m.user_id !== 'other';
+          const isMe = currentUserId != null && m.user_id === currentUserId;
           return (
             <View
               key={m.id}
@@ -167,6 +197,11 @@ export default function RoomDetailScreen() {
         })}
       </ScrollView>
 
+      {sendError ? (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorText}>{sendError}</Text>
+        </View>
+      ) : null}
       {/* Realtime Input Bar */}
       <View style={styles.inputBar}>
         <TextInput
@@ -175,9 +210,19 @@ export default function RoomDetailScreen() {
           placeholderTextColor={colors.inkSoft}
           value={input}
           onChangeText={setInput}
+          editable={!sending}
+          multiline
         />
-        <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
-          <Send size={18} color="#fff" />
+        <TouchableOpacity
+          style={[styles.sendBtn, sending && styles.sendBtnBusy]}
+          onPress={handleSend}
+          disabled={sending}
+        >
+          {sending ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Send size={18} color="#fff" />
+          )}
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -196,6 +241,20 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 12 },
   emptyChat: { padding: 16, alignItems: 'center' },
   emptyChatText: { fontSize: 12.5, color: colors.inkSoft, textAlign: 'center' },
+  errorBanner: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    padding: 10,
+    borderRadius: radius.md,
+    backgroundColor: colors.dangerPale,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  errorText: { fontSize: 12.5, color: colors.danger, flex: 1 },
+  retryText: { fontSize: 13, fontWeight: '700', color: colors.teal },
+  sendBtnBusy: { opacity: 0.7 },
   msgBubble: {
     maxWidth: '80%',
     padding: 12,
