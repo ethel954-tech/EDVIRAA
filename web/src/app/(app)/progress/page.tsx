@@ -59,7 +59,7 @@ export default async function ProgressPage() {
   since.setHours(0, 0, 0, 0);
 
   // Round 1 — everything independent.
-  const [gamification, subjectsRes, xpRes, journalRes] = await Promise.all([
+  const [gamification, subjectsRes, xpRes, journalRes, badgesRes, attemptsRes] = await Promise.all([
     supabase
       .from("gamification")
       .select("xp, current_streak, longest_streak")
@@ -85,7 +85,23 @@ export default async function ProgressPage() {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(5),
+    supabase.from("user_badges").select("*", { count: "exact", head: true }).eq("user_id", user.id),
+    supabase.from("quiz_attempts").select("score").eq("user_id", user.id),
   ]);
+
+  // Real data or honest empty states: null means unknown (error) or none yet —
+  // the view renders "—" instead of a made-up number. Only the code is logged.
+  if (badgesRes.error) console.error(badgesRes.error.code);
+  const badgeCount = badgesRes.error ? null : (badgesRes.count ?? 0);
+  if (attemptsRes.error) console.error(attemptsRes.error.code);
+  const attemptScores = attemptsRes.error
+    ? []
+    : ((attemptsRes.data ?? []) as { score: number | null }[])
+        .map((row) => row.score)
+        .filter((score): score is number => typeof score === "number");
+  const quizAccuracy = attemptScores.length
+    ? Math.round(attemptScores.reduce((sum, value) => sum + value, 0) / attemptScores.length)
+    : null;
 
   const subjectList = subjectsRes.data ?? [];
   const subjectIds = subjectList.map((s) => s.id as string);
@@ -183,6 +199,8 @@ export default async function ProgressPage() {
     subjects: subjectBreakdown,
     weakSpots,
     totals: { topicsDone, topicsTotal },
+    badges: badgeCount,
+    accuracy: quizAccuracy,
   };
 
   return <ProgressView data={data} />;

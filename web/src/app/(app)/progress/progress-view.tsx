@@ -22,6 +22,10 @@ export type ProgressData = {
   subjects: { id: string; name: string; topicsDone: number; topicsTotal: number }[];
   weakSpots: WeakSpot[];
   totals: { topicsDone: number; topicsTotal: number };
+  /** Real user_badges count, or null for "none yet / error" (shown as —). */
+  badges: number | null;
+  /** Average of non-null quiz_attempts.score, rounded; null = none yet / error. */
+  accuracy: number | null;
 };
 
 function reviewHref(spot: WeakSpot): string {
@@ -35,7 +39,7 @@ export function ProgressView({ data }: { data: ProgressData }) {
   const pct =
     data.totals.topicsTotal > 0
       ? Math.round((data.totals.topicsDone / data.totals.topicsTotal) * 100)
-      : 74;
+      : 0;
 
   const visibleWeakSpots = data.weakSpots.slice(0, 4);
   const compactQuestion = (question: string) =>
@@ -47,6 +51,7 @@ export function ProgressView({ data }: { data: ProgressData }) {
     const y = 50 - Math.round((t.xp / maxXP) * 40);
     return `${x},${y}`;
   }).join(" ");
+  const sparkHasData = data.trend.slice(-7).some((d) => d.xp > 0);
 
   return (
     <div className="mx-auto max-w-[820px] px-4 py-8">
@@ -59,17 +64,21 @@ export function ProgressView({ data }: { data: ProgressData }) {
       <div className="mb-7 flex flex-wrap items-end gap-8">
         <div>
           <b className="font-fraunces text-[52px] leading-none text-[var(--teal-dark)] block">
-            {pct}%
+            {data.totals.topicsTotal > 0 ? `${pct}%` : "—"}
           </b>
-          <span className="text-[13px] text-[var(--ink-soft)]">Overall completion</span>
+          <span className="text-[13px] text-[var(--ink-soft)]">
+            {data.totals.topicsTotal > 0 ? "Overall completion" : "Add a subject to see your progress"}
+          </span>
         </div>
         <div className="flex gap-6 pb-1.5">
           <div>
-            <b className="font-fraunces text-[18px] text-[var(--ink)] block">4</b>
+            <b className="font-fraunces text-[18px] text-[var(--ink)] block">{data.badges ?? "—"}</b>
             <span className="text-[11.5px] text-[var(--ink-soft)]">Badges</span>
           </div>
           <div>
-            <b className="font-fraunces text-[18px] text-[var(--ink)] block">87%</b>
+            <b className="font-fraunces text-[18px] text-[var(--ink)] block">
+              {data.accuracy === null ? "—" : `${data.accuracy}%`}
+            </b>
             <span className="text-[11.5px] text-[var(--ink-soft)]">Quiz accuracy</span>
           </div>
           <div>
@@ -110,13 +119,20 @@ export function ProgressView({ data }: { data: ProgressData }) {
             XP trend (7 days)
           </h3>
           <svg className="w-full h-[60px]" viewBox="0 0 200 60" preserveAspectRatio="none">
-            <polyline
-              points={sparkPoints || "0,45 30,38 60,40 90,25 120,30 150,15 180,10 200,8"}
-              fill="none"
-              stroke="var(--teal)"
-              strokeWidth="3"
-            />
+            {sparkHasData ? (
+              <polyline
+                points={sparkPoints}
+                fill="none"
+                stroke="var(--teal)"
+                strokeWidth="3"
+              />
+            ) : (
+              <line x1="0" y1="45" x2="200" y2="45" stroke="var(--border)" strokeWidth="2" />
+            )}
           </svg>
+          {sparkHasData ? null : (
+            <p className="mt-1 text-[12.5px] text-[var(--ink-soft)]">No XP yet this week</p>
+          )}
         </div>
       </div>
 
