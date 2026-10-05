@@ -17,7 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { AuthError, FieldLabel, SubmitButton, TextInput } from "@/components/auth/form-fields";
+import { AuthError, SubmitButton } from "@/components/auth/form-fields";
 import { cn } from "@/lib/utils";
 
 export type LessonBlock =
@@ -80,9 +80,9 @@ function cleanBlocks(blocks: LessonBlock[]) {
 type CalloutTone = "info" | "tip" | "warning";
 
 const CALLOUT_STYLES: Record<CalloutTone, string> = {
-  info: "border-primary-200 bg-primary-50 text-ink",
-  tip: "border-secondary-200 bg-secondary-50 text-ink",
-  warning: "border-accent-200 bg-accent-50 text-ink",
+  info: "border-[var(--border)] bg-[var(--teal-pale)] text-[var(--ink)]",
+  tip: "border-[var(--border)] bg-[var(--violet-pale)] text-[var(--ink)]",
+  warning: "border-[var(--border)] bg-[var(--amber-pale)] text-[var(--ink)]",
 };
 
 export function LessonBuilder({
@@ -199,39 +199,47 @@ export function LessonBuilder({
   return (
     <form onSubmit={handleSave} className="space-y-6">
       <div>
-        <div className="flex items-center gap-2 text-sm text-ink/60">
-          <BookOpen className="h-4 w-4 text-primary-600" />
-          Lesson for <span className="font-medium text-ink">{roomName}</span>
+        <div className="flex items-center gap-2 text-sm text-[var(--ink-soft)]">
+          <BookOpen className="h-4 w-4 text-[var(--teal)]" />
+          Lesson for <span className="font-medium text-[var(--ink)]">{roomName}</span>
         </div>
-        <h1 className="mt-1 text-2xl font-semibold text-ink">
+        <h1 className="mt-1 text-2xl font-semibold text-[var(--ink)]">
           {lesson ? "Edit lesson" : "Build a lesson"}
         </h1>
       </div>
 
       <AuthError message={error} />
 
-      <div className="rounded-card border border-primary-100 bg-surface p-5">
-        <FieldLabel htmlFor="lesson-title">Title</FieldLabel>
-        <TextInput
+      <div className="rounded-card border border-[var(--border)] bg-[var(--surface)] p-5">
+        <label
+          htmlFor="lesson-title"
+          className="mb-1.5 block text-sm font-medium text-[var(--ink-soft)]"
+        >
+          Title
+        </label>
+        <input
           id="lesson-title"
           value={title}
           maxLength={160}
           placeholder="e.g. Photosynthesis — the light reactions"
           onChange={(e) => setTitle(e.target.value)}
+          className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-sm text-[var(--ink)] placeholder:text-[var(--ink-soft)] focus:border-[var(--teal)] focus:outline-none"
         />
       </div>
 
       {/* ------------------------------------------------------- Content blocks */}
-      <div className="rounded-card border border-primary-100 bg-surface p-5">
+      <div className="rounded-card border border-[var(--border)] bg-[var(--surface)] p-5">
         <div className="flex items-center justify-between">
-          <FieldLabel>Content blocks</FieldLabel>
+          <label className="mb-1.5 block text-sm font-medium text-[var(--ink-soft)]">
+            Content blocks
+          </label>
           <div className="flex flex-wrap gap-1.5">
             {BLOCK_KINDS.map(({ type, label, icon: Icon }) => (
               <button
                 key={type}
                 type="button"
                 onClick={() => setBlocks((prev) => [...prev, newBlock(type)])}
-                className="flex items-center gap-1 rounded-btn border border-primary-100 px-2.5 py-1.5 text-xs font-medium text-ink/70 transition-colors hover:bg-primary-50 hover:text-primary-700"
+                className="flex items-center gap-1 rounded-[12px] border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--ink-soft)] transition-colors hover:bg-[var(--bg)] hover:text-[var(--ink)]"
               >
                 <Icon className="h-3.5 w-3.5" />
                 {label}
@@ -241,15 +249,15 @@ export function LessonBuilder({
         </div>
 
         {blocks.length === 0 ? (
-          <p className="mt-4 rounded-card border border-dashed border-primary-200 px-4 py-8 text-center text-sm text-ink/50">
+          <p className="mt-4 rounded-card border border-dashed border-[var(--border)] px-4 py-8 text-center text-sm text-[var(--ink-soft)]">
             No blocks yet — add headings, paragraphs, callouts, or lists above.
           </p>
         ) : (
           <ol className="mt-4 space-y-3">
             {blocks.map((block, i) => (
-              <li key={i} className="rounded-card border border-primary-100 bg-surface p-3">
+              <li key={i} className="rounded-card border border-[var(--border)] bg-[var(--surface)] p-3">
                 <div className="mb-2 flex items-center gap-1">
-                  <span className="mr-auto text-xs font-semibold uppercase tracking-wide text-ink/40">
+                  <span className="mr-auto text-xs font-semibold uppercase tracking-wide text-[var(--ink-soft)]">
                     {block.type}
                   </span>
                   <button
@@ -257,7 +265,7 @@ export function LessonBuilder({
                     aria-label="Move up"
                     disabled={i === 0}
                     onClick={() => moveBlock(i, -1)}
-                    className="rounded-btn p-1.5 text-ink/40 transition-colors hover:bg-primary-50 hover:text-ink disabled:opacity-30"
+                    className="rounded-[12px] p-1.5 text-[var(--ink-soft)] transition-colors hover:bg-[var(--bg)] hover:text-[var(--ink)] disabled:opacity-30"
                   >
                     <ArrowUp className="h-3.5 w-3.5" />
                   </button>
@@ -266,7 +274,7 @@ export function LessonBuilder({
                     aria-label="Move down"
                     disabled={i === blocks.length - 1}
                     onClick={() => moveBlock(i, 1)}
-                    className="rounded-btn p-1.5 text-ink/40 transition-colors hover:bg-primary-50 hover:text-ink disabled:opacity-30"
+                    className="rounded-[12px] p-1.5 text-[var(--ink-soft)] transition-colors hover:bg-[var(--bg)] hover:text-[var(--ink)] disabled:opacity-30"
                   >
                     <ArrowDown className="h-3.5 w-3.5" />
                   </button>
@@ -274,7 +282,7 @@ export function LessonBuilder({
                     type="button"
                     aria-label="Remove block"
                     onClick={() => setBlocks((prev) => prev.filter((_, j) => j !== i))}
-                    className="rounded-btn p-1.5 text-ink/40 transition-colors hover:bg-accent-50 hover:text-accent-700"
+                    className="rounded-[12px] p-1.5 text-[var(--ink-soft)] transition-colors hover:bg-[var(--bg)] hover:text-[var(--amber)]"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -288,17 +296,18 @@ export function LessonBuilder({
                       onChange={(e) =>
                         updateBlock(i, { ...block, level: Number(e.target.value) })
                       }
-                      className="h-10 rounded-btn border border-primary-200 bg-surface px-2 text-sm text-ink"
+                      className="h-10 rounded-[12px] border border-[var(--border)] bg-[var(--bg)] px-2 text-sm text-[var(--ink)]"
                     >
                       <option value={1}>H1</option>
                       <option value={2}>H2</option>
                       <option value={3}>H3</option>
                     </select>
-                    <TextInput
+                    <input
                       value={block.text}
                       maxLength={200}
                       placeholder="Section heading"
                       onChange={(e) => updateBlock(i, { ...block, text: e.target.value })}
+                      className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-sm text-[var(--ink)] placeholder:text-[var(--ink-soft)] focus:border-[var(--teal)] focus:outline-none"
                     />
                   </div>
                 ) : block.type === "paragraph" ? (
@@ -308,7 +317,7 @@ export function LessonBuilder({
                     maxLength={5000}
                     placeholder="Write the lesson text…"
                     onChange={(e) => updateBlock(i, { ...block, text: e.target.value })}
-                    className="w-full rounded-btn border border-primary-200 bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink/30 focus:border-primary-400 focus:outline-none"
+                    className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--ink)] placeholder:text-[var(--ink-soft)] focus:border-[var(--teal)] focus:outline-none"
                   />
                 ) : block.type === "callout" ? (
                   <div className="space-y-2">
@@ -321,7 +330,7 @@ export function LessonBuilder({
                           tone: e.target.value as "info" | "tip" | "warning",
                         })
                       }
-                      className="h-10 rounded-btn border border-primary-200 bg-surface px-2 text-sm text-ink"
+                      className="h-10 rounded-[12px] border border-[var(--border)] bg-[var(--bg)] px-2 text-sm text-[var(--ink)]"
                     >
                       <option value="info">Info</option>
                       <option value="tip">Tip</option>
@@ -333,17 +342,17 @@ export function LessonBuilder({
                       maxLength={1000}
                       placeholder="Something worth highlighting…"
                       onChange={(e) => updateBlock(i, { ...block, text: e.target.value })}
-                      className="w-full rounded-btn border border-primary-200 bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink/30 focus:border-primary-400 focus:outline-none"
+                      className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--ink)] placeholder:text-[var(--ink-soft)] focus:border-[var(--teal)] focus:outline-none"
                     />
                   </div>
                 ) : (
                   <div className="space-y-2">
                     {block.items.map((item, j) => (
                       <div key={j} className="flex items-center gap-2">
-                        <span className="shrink-0 text-xs font-medium text-ink/40">
+                        <span className="shrink-0 text-xs font-medium text-[var(--ink-soft)]">
                           {j + 1}.
                         </span>
-                        <TextInput
+                        <input
                           value={item}
                           maxLength={500}
                           placeholder={`List item ${j + 1}`}
@@ -353,6 +362,7 @@ export function LessonBuilder({
                               items: block.items.map((it, k) => (k === j ? e.target.value : it)),
                             })
                           }
+                          className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-sm text-[var(--ink)] placeholder:text-[var(--ink-soft)] focus:border-[var(--teal)] focus:outline-none"
                         />
                         <button
                           type="button"
@@ -363,7 +373,7 @@ export function LessonBuilder({
                               items: block.items.filter((_, k) => k !== j),
                             })
                           }
-                          className="rounded-btn p-1.5 text-ink/40 hover:bg-accent-50 hover:text-accent-700"
+                          className="rounded-[12px] p-1.5 text-[var(--ink-soft)] hover:bg-[var(--bg)] hover:text-[var(--amber)]"
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
@@ -374,7 +384,7 @@ export function LessonBuilder({
                       onClick={() =>
                         updateBlock(i, { ...block, items: [...block.items, ""] })
                       }
-                      className="flex items-center gap-1 text-xs font-medium text-primary-600 hover:underline"
+                      className="flex items-center gap-1 text-xs font-medium text-[var(--teal)] hover:underline"
                     >
                       <Plus className="h-3.5 w-3.5" /> Add item
                     </button>
@@ -387,21 +397,23 @@ export function LessonBuilder({
       </div>
 
       {/* ------------------------------------------------------ Attach documents */}
-      <div className="rounded-card border border-primary-100 bg-surface p-5">
+      <div className="rounded-card border border-[var(--border)] bg-[var(--surface)] p-5">
         <div className="flex items-center justify-between gap-3">
-          <FieldLabel>Attached documents ({docIds.size})</FieldLabel>
+          <label className="mb-1.5 block text-sm font-medium text-[var(--ink-soft)]">
+            Attached documents ({docIds.size})
+          </label>
           <div className="relative w-56">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink/30" />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--ink-soft)]" />
             <input
               value={docSearch}
               onChange={(e) => setDocSearch(e.target.value)}
               placeholder="Search your documents…"
-              className="h-9 w-full rounded-btn border border-primary-200 bg-surface pl-8 pr-3 text-sm text-ink placeholder:text-ink/30 focus:border-primary-400 focus:outline-none"
+              className="h-9 w-full rounded-[12px] border border-[var(--border)] bg-[var(--bg)] pl-8 pr-3 text-sm text-[var(--ink)] placeholder:text-[var(--ink-soft)] focus:border-[var(--teal)] focus:outline-none"
             />
           </div>
         </div>
         {documents.length === 0 ? (
-          <p className="mt-3 text-sm text-ink/50">
+          <p className="mt-3 text-sm text-[var(--ink-soft)]">
             You haven&apos;t uploaded any documents yet — upload them from your
             student-style Documents page, then attach them here.
           </p>
@@ -415,16 +427,16 @@ export function LessonBuilder({
                     type="button"
                     onClick={() => toggleDoc(d.id)}
                     className={cn(
-                      "flex w-full items-center gap-2.5 rounded-btn border px-3 py-2 text-left text-sm transition-colors",
+                      "flex w-full items-center gap-2.5 rounded-[12px] border px-3 py-2 text-left text-sm transition-colors",
                       attached
-                        ? "border-primary-300 bg-primary-50 text-primary-800"
-                        : "border-transparent text-ink hover:bg-surface-muted",
+                        ? "border-[var(--teal)] bg-[var(--teal-pale)] text-[var(--ink)]"
+                        : "border-transparent text-[var(--ink)] hover:bg-[var(--bg)]",
                     )}
                   >
                     <FileText
                       className={cn(
                         "h-4 w-4 shrink-0",
-                        attached ? "text-primary-600" : "text-ink/30",
+                        attached ? "text-[var(--teal)]" : "text-[var(--ink-soft)]",
                       )}
                     />
                     <span className="min-w-0 flex-1 truncate">{d.title}</span>
@@ -434,7 +446,7 @@ export function LessonBuilder({
               );
             })}
             {filteredDocs.length === 0 ? (
-              <li className="px-3 py-2 text-sm text-ink/40">No documents match.</li>
+              <li className="px-3 py-2 text-sm text-[var(--ink-soft)]">No documents match.</li>
             ) : null}
           </ul>
         )}
@@ -447,7 +459,7 @@ export function LessonBuilder({
         <button
           type="button"
           onClick={() => router.back()}
-          className="text-sm font-medium text-ink/60 hover:text-ink hover:underline"
+          className="text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)] hover:underline"
         >
           Cancel
         </button>

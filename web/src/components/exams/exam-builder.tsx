@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { AuthError, FieldLabel, SubmitButton, TextInput } from "@/components/auth/form-fields";
+import { AuthError, SubmitButton } from "@/components/auth/form-fields";
 import { cn } from "@/lib/utils";
 
 export type ExamQuestionDraft = {
@@ -169,28 +169,39 @@ export function ExamBuilder({
   return (
     <form onSubmit={handleSave} className="space-y-6">
       <div>
-        <div className="flex items-center gap-2 text-sm text-ink/60">
-          <ClipboardList className="h-4 w-4 text-primary-600" />
-          Exam for <span className="font-medium text-ink">{roomName}</span>
+        <div className="flex items-center gap-2 text-sm text-[var(--ink-soft)]">
+          <ClipboardList className="h-4 w-4 text-[var(--teal)]" />
+          Exam for <span className="font-medium text-[var(--ink)]">{roomName}</span>
         </div>
-        <h1 className="mt-1 text-2xl font-semibold text-ink">
+        <h1 className="mt-1 text-2xl font-semibold text-[var(--ink)]">
           {exam ? "Edit exam" : "Build an exam"}
         </h1>
       </div>
 
       <AuthError message={error} />
 
-      <div className="rounded-card border border-primary-100 bg-surface p-5">
-        <FieldLabel htmlFor="exam-title">Title</FieldLabel>
-        <TextInput
+      <div className="rounded-card border border-[var(--border)] bg-[var(--surface)] p-5">
+        <label
+          htmlFor="exam-title"
+          className="mb-1.5 block text-sm font-medium text-[var(--ink-soft)]"
+        >
+          Title
+        </label>
+        <input
           id="exam-title"
           value={title}
           maxLength={160}
           placeholder="e.g. Cell biology — mid-unit check"
           onChange={(e) => setTitle(e.target.value)}
+          className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-sm text-[var(--ink)] placeholder:text-[var(--ink-soft)] focus:border-[var(--teal)] focus:outline-none"
         />
         <div className="mt-3">
-          <FieldLabel htmlFor="exam-desc">Description (optional)</FieldLabel>
+          <label
+            htmlFor="exam-desc"
+            className="mb-1.5 block text-sm font-medium text-[var(--ink-soft)]"
+          >
+            Description (optional)
+          </label>
           <textarea
             id="exam-desc"
             value={description}
@@ -198,29 +209,29 @@ export function ExamBuilder({
             maxLength={500}
             placeholder="What this exam covers, instructions…"
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full rounded-btn border border-primary-200 bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink/30 focus:border-primary-400 focus:outline-none"
+            className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--ink)] placeholder:text-[var(--ink-soft)] focus:border-[var(--teal)] focus:outline-none"
           />
         </div>
       </div>
 
       {/* -------------------------------------------------------------- Questions */}
-      <div className="rounded-card border border-primary-100 bg-surface p-5">
+      <div className="rounded-card border border-[var(--border)] bg-[var(--surface)] p-5">
         <div className="flex items-center justify-between">
-          <FieldLabel>
+          <label className="mb-1.5 block text-sm font-medium text-[var(--ink-soft)]">
             Questions ({questions.length}) · {totalPoints} points
-          </FieldLabel>
+          </label>
           <div className="flex gap-1.5">
             <button
               type="button"
               onClick={() => setQuestions((prev) => [...prev, emptyQuestion("multiple_choice")])}
-              className="flex items-center gap-1 rounded-btn border border-primary-100 px-2.5 py-1.5 text-xs font-medium text-ink/70 transition-colors hover:bg-primary-50 hover:text-primary-700"
+              className="flex items-center gap-1 rounded-[12px] border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--ink-soft)] transition-colors hover:bg-[var(--bg)] hover:text-[var(--ink)]"
             >
               <CheckSquare className="h-3.5 w-3.5" /> Multiple choice
             </button>
             <button
               type="button"
               onClick={() => setQuestions((prev) => [...prev, emptyQuestion("short_answer")])}
-              className="flex items-center gap-1 rounded-btn border border-primary-100 px-2.5 py-1.5 text-xs font-medium text-ink/70 transition-colors hover:bg-primary-50 hover:text-primary-700"
+              className="flex items-center gap-1 rounded-[12px] border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--ink-soft)] transition-colors hover:bg-[var(--bg)] hover:text-[var(--ink)]"
             >
               <TextCursorInput className="h-3.5 w-3.5" /> Short answer
             </button>
@@ -229,15 +240,15 @@ export function ExamBuilder({
 
         <ol className="mt-4 space-y-3">
           {questions.map((q, i) => (
-            <li key={q.id} className="rounded-card border border-primary-100 bg-surface p-4">
+            <li key={q.id} className="rounded-card border border-[var(--border)] bg-[var(--surface)] p-4">
               <div className="mb-3 flex items-center gap-2">
-                <GripVertical className="h-4 w-4 text-ink/20" />
-                <span className="text-sm font-semibold text-ink">Q{i + 1}</span>
-                <span className="rounded-full bg-primary-50 px-2 py-0.5 text-[11px] font-medium text-primary-700">
+                <GripVertical className="h-4 w-4 text-[var(--ink-soft)]" />
+                <span className="text-sm font-semibold text-[var(--ink)]">Q{i + 1}</span>
+                <span className="rounded-full bg-[var(--teal-pale)] px-2 py-0.5 text-[11px] font-medium text-[var(--ink)]">
                   {q.kind === "multiple_choice" ? "Multiple choice" : "Short answer"}
                 </span>
                 <div className="ml-auto flex items-center gap-1">
-                  <label className="flex items-center gap-1 text-xs text-ink/50">
+                  <label className="flex items-center gap-1 text-xs text-[var(--ink-soft)]">
                     pts
                     <input
                       type="number"
@@ -245,7 +256,7 @@ export function ExamBuilder({
                       max={100}
                       value={q.points}
                       onChange={(e) => updateQuestion(q.id, { points: Number(e.target.value) })}
-                      className="h-8 w-16 rounded-btn border border-primary-200 px-2 text-sm text-ink focus:border-primary-400 focus:outline-none"
+                      className="h-8 w-16 rounded-[12px] border border-[var(--border)] bg-[var(--bg)] px-2 text-sm text-[var(--ink)] focus:border-[var(--teal)] focus:outline-none"
                     />
                   </label>
                   <button
@@ -253,7 +264,7 @@ export function ExamBuilder({
                     aria-label="Move up"
                     disabled={i === 0}
                     onClick={() => moveQuestion(i, -1)}
-                    className="rounded-btn p-1.5 text-ink/40 hover:bg-primary-50 hover:text-ink disabled:opacity-30"
+                    className="rounded-[12px] p-1.5 text-[var(--ink-soft)] hover:bg-[var(--bg)] hover:text-[var(--ink)] disabled:opacity-30"
                   >
                     <ArrowUp className="h-3.5 w-3.5" />
                   </button>
@@ -262,7 +273,7 @@ export function ExamBuilder({
                     aria-label="Move down"
                     disabled={i === questions.length - 1}
                     onClick={() => moveQuestion(i, 1)}
-                    className="rounded-btn p-1.5 text-ink/40 hover:bg-primary-50 hover:text-ink disabled:opacity-30"
+                    className="rounded-[12px] p-1.5 text-[var(--ink-soft)] hover:bg-[var(--bg)] hover:text-[var(--ink)] disabled:opacity-30"
                   >
                     <ArrowDown className="h-3.5 w-3.5" />
                   </button>
@@ -270,7 +281,7 @@ export function ExamBuilder({
                     type="button"
                     aria-label="Remove question"
                     onClick={() => setQuestions((prev) => prev.filter((x) => x.id !== q.id))}
-                    className="rounded-btn p-1.5 text-ink/40 hover:bg-accent-50 hover:text-accent-700"
+                    className="rounded-[12px] p-1.5 text-[var(--ink-soft)] hover:bg-[var(--bg)] hover:text-[var(--amber)]"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -287,7 +298,7 @@ export function ExamBuilder({
                     : "Ask a question with a short expected answer…"
                 }
                 onChange={(e) => updateQuestion(q.id, { prompt: e.target.value })}
-                className="w-full rounded-btn border border-primary-200 bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink/30 focus:border-primary-400 focus:outline-none"
+                className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--ink)] placeholder:text-[var(--ink-soft)] focus:border-[var(--teal)] focus:outline-none"
               />
 
               {q.kind === "multiple_choice" ? (
@@ -305,16 +316,17 @@ export function ExamBuilder({
                             "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition-colors",
                             isKey
                               ? "border-primary-600 bg-primary-600 text-white"
-                              : "border-primary-200 text-ink/50 hover:border-primary-400",
+                              : "border-[var(--border)] text-[var(--ink-soft)] hover:border-[var(--teal)]",
                           )}
                         >
                           {LETTERS[j]}
                         </button>
-                        <TextInput
+                        <input
                           value={opt}
                           maxLength={200}
                           placeholder={`Option ${LETTERS[j]}`}
                           onChange={(e) => setOption(q.id, j, e.target.value)}
+                          className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-sm text-[var(--ink)] placeholder:text-[var(--ink-soft)] focus:border-[var(--teal)] focus:outline-none"
                         />
                         {q.options.length > 2 ? (
                           <button
@@ -338,7 +350,7 @@ export function ExamBuilder({
                                 }),
                               )
                             }
-                            className="rounded-btn p-1.5 text-ink/40 hover:bg-accent-50 hover:text-accent-700"
+                            className="rounded-[12px] p-1.5 text-[var(--ink-soft)] hover:bg-[var(--bg)] hover:text-[var(--amber)]"
                           >
                             <X className="h-3.5 w-3.5" />
                           </button>
@@ -356,26 +368,29 @@ export function ExamBuilder({
                           ),
                         )
                       }
-                      className="flex items-center gap-1 text-xs font-medium text-primary-600 hover:underline"
+                      className="flex items-center gap-1 text-xs font-medium text-[var(--teal)] hover:underline"
                     >
                       <Plus className="h-3.5 w-3.5" /> Add option
                     </button>
                   ) : null}
-                  <p className="text-xs text-ink/40">
+                  <p className="text-xs text-[var(--ink-soft)]">
                     Correct answer:{" "}
-                    <span className="font-semibold text-primary-700">
+                    <span className="font-semibold text-[var(--ink)]">
                       {q.answerKey || "not marked yet"}
                     </span>
                   </p>
                 </div>
               ) : (
                 <div className="mt-3">
-                  <FieldLabel>Expected answer (graded case-insensitively)</FieldLabel>
-                  <TextInput
+                  <label className="mb-1.5 block text-sm font-medium text-[var(--ink-soft)]">
+                    Expected answer (graded case-insensitively)
+                  </label>
+                  <input
                     value={q.answerKey}
                     maxLength={300}
                     placeholder="e.g. mitochondria"
                     onChange={(e) => updateQuestion(q.id, { answerKey: e.target.value })}
+                    className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-sm text-[var(--ink)] placeholder:text-[var(--ink-soft)] focus:border-[var(--teal)] focus:outline-none"
                   />
                 </div>
               )}
@@ -383,7 +398,7 @@ export function ExamBuilder({
           ))}
         </ol>
         {questions.length === 0 ? (
-          <p className="mt-4 rounded-card border border-dashed border-primary-200 px-4 py-8 text-center text-sm text-ink/50">
+          <p className="mt-4 rounded-card border border-dashed border-[var(--border)] px-4 py-8 text-center text-sm text-[var(--ink-soft)]">
             No questions yet — add multiple-choice or short-answer questions above.
           </p>
         ) : null}
@@ -396,7 +411,7 @@ export function ExamBuilder({
         <button
           type="button"
           onClick={() => router.back()}
-          className="text-sm font-medium text-ink/60 hover:text-ink hover:underline"
+          className="text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)] hover:underline"
         >
           Cancel
         </button>
