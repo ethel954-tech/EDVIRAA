@@ -36,7 +36,7 @@ export default function EducatorSetupScreen() {
 
       if (error) throw error;
 
-      router.replace('/educator');
+      router.replace('/web-only');
     } catch (e) {
       Alert.alert('Error', reportError('educator-setup', e));
     } finally {

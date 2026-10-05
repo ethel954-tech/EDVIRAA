@@ -121,12 +121,13 @@ export default function RootLayout() {
       if (!inTabs && !inLessons) {
         router.replace('/(tabs)');
       }
-    } else if (userRole === 'educator') {
-      if (!inEducator) {
-        router.replace('/educator');
-      }
-    } else if (userRole === 'admin' && segments[0] !== 'settings') {
-      router.replace('/settings');
+    } else if (userRole === 'educator' && segments[0] !== 'web-only') {
+      // Educator tools (grading, exam building, insights) are web-only for
+      // now. The old /educator dashboard is unreachable; its dead buttons
+      // no longer appear to educators.
+      router.replace('/web-only');
+    } else if (userRole === 'admin' && segments[0] !== 'web-only') {
+      router.replace('/web-only');
     }
   }, [session, userRole, loading, segments]);
 
