@@ -100,20 +100,21 @@ export default async function EducatorDashboardPage() {
   ]
     .sort((a, b) => new Date(b.time ?? 0).getTime() - new Date(a.time ?? 0).getTime())
     .slice(0, 5);
+  const singleRoomId = roomList.length === 1 ? roomList[0].id : null;
   const quickActions = [
     {
       label: "New lesson",
-      href: "/lessons/new",
+      href: singleRoomId ? `/lessons/new?room=${singleRoomId}` : "/rooms",
       icon: BookOpen,
       tone: "teal",
-      helper: "Build a guided lesson",
+      helper: singleRoomId ? "Build a guided lesson" : "Choose a room, then build a guided lesson",
     },
     {
       label: "New exam",
-      href: "/exams/new",
+      href: singleRoomId ? `/exams/new?room=${singleRoomId}` : "/rooms",
       icon: ClipboardList,
       tone: "violet",
-      helper: "Launch an assessment",
+      helper: singleRoomId ? "Launch an assessment" : "Choose a room, then launch an assessment",
     },
     {
       label: "Rooms",
@@ -154,19 +155,19 @@ export default async function EducatorDashboardPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-[16px] border border-[var(--border)] bg-white/60 p-3.5 backdrop-blur-sm">
+            <div className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)]/80 p-3.5 backdrop-blur-sm">
               <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--ink-soft)]">Rooms</div>
               <div className="mt-2 text-[24px] font-fraunces text-[var(--ink)]">{roomList.length}</div>
             </div>
-            <div className="rounded-[16px] border border-[var(--border)] bg-white/60 p-3.5 backdrop-blur-sm">
+            <div className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)]/80 p-3.5 backdrop-blur-sm">
               <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--ink-soft)]">Lessons</div>
               <div className="mt-2 text-[24px] font-fraunces text-[var(--ink)]">{lessonCount}</div>
             </div>
-            <div className="rounded-[16px] border border-[var(--border)] bg-white/60 p-3.5 backdrop-blur-sm">
+            <div className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)]/80 p-3.5 backdrop-blur-sm">
               <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--ink-soft)]">Exams</div>
               <div className="mt-2 text-[24px] font-fraunces text-[var(--ink)]">{examCount}</div>
             </div>
-            <div className="rounded-[16px] border border-[var(--border)] bg-white/60 p-3.5 backdrop-blur-sm">
+            <div className="rounded-[16px] border border-[var(--border)] bg-[var(--surface)]/80 p-3.5 backdrop-blur-sm">
               <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--ink-soft)]">Tasks</div>
               <div className="mt-2 text-[24px] font-fraunces text-[var(--ink)]">{totalClasswork}</div>
             </div>
@@ -181,9 +182,9 @@ export default async function EducatorDashboardPage() {
             href={href}
             className={[
               "group rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 text-left shadow-[0_8px_22px_rgba(17,24,39,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(17,24,39,0.08)]",
-              tone === "teal" ? "bg-[linear-gradient(135deg,rgba(18,166,130,0.08),rgba(255,255,255,0.8))]" : "",
-              tone === "violet" ? "bg-[linear-gradient(135deg,rgba(104,95,255,0.08),rgba(255,255,255,0.8))]" : "",
-              tone === "amber" ? "bg-[linear-gradient(135deg,rgba(247,187,81,0.08),rgba(255,255,255,0.8))]" : "",
+              tone === "teal" ? "bg-[linear-gradient(135deg,rgba(18,166,130,0.08),var(--surface))]" : "",
+              tone === "violet" ? "bg-[linear-gradient(135deg,rgba(104,95,255,0.08),var(--surface))]" : "",
+              tone === "amber" ? "bg-[linear-gradient(135deg,rgba(247,187,81,0.08),var(--surface))]" : "",
             ].join(" ")}
           >
             <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-[12px] bg-[var(--bg)] text-[var(--ink)]">

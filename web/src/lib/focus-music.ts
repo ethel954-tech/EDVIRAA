@@ -24,20 +24,6 @@ export type FocusTrack = {
 
 export const FOCUS_TRACKS: FocusTrack[] = [
   {
-    id: "gentle-rain",
-    title: "Gentle Rain",
-    artist: "EDVIRAA",
-    src: "/focus-music/quiet-piano-loop.wav",
-    license: "CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.",
-  },
-  {
-    id: "deep-focus-loop",
-    title: "Deep Focus Loop",
-    artist: "EDVIRAA",
-    src: "/focus-music/quiet-piano-loop.wav",
-    license: "CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.",
-  },
-  {
     id: "quiet-piano",
     title: "Quiet Piano",
     artist: "EDVIRAA",
