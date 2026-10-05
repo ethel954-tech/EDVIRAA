@@ -182,7 +182,7 @@ export function AdminDashboard({
         {statCards.map(({ label, value, icon: Icon, accent }) => (
           <div
             key={label}
-            className="rounded-[20px] border border-[var(--border)] bg-[linear-gradient(135deg,rgba(255,255,255,0.7),rgba(248,250,252,0.8))] p-4 shadow-[0_10px_26px_rgba(15,23,42,0.04)]"
+            className="rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_10px_26px_rgba(15,23,42,0.04)]"
           >
             <div className="mb-4 flex items-center justify-between">
               <span className="text-[11px] uppercase tracking-[0.14em] text-[var(--ink-soft)]">
@@ -399,7 +399,7 @@ export function AdminDashboard({
                             ? "bg-emerald-100 text-emerald-800"
                             : profile.accountActive === false
                               ? "bg-red-100 text-red-800"
-                              : "bg-gray-100 text-gray-700",
+                              : "border border-[var(--border)] bg-[var(--bg)] text-[var(--ink-soft)]",
                         ].join(" ")}
                       >
                         {profile.accountActive === true

@@ -40,7 +40,6 @@ const educatorNav = [
 
 const adminNav = [
   { href: "/admin", label: "Overview", icon: Shield },
-  { href: "/rooms", label: "Rooms", icon: Users },
   { href: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
