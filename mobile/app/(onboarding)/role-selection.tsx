@@ -10,6 +10,7 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
 import { colors, radius } from '../../src/lib/theme';
+import { reportError } from '../../src/lib/userMessages';
 import { GraduationCap, BookOpenCheck } from 'lucide-react-native';
 
 export default function RoleSelectionScreen() {
@@ -48,8 +49,8 @@ export default function RoleSelectionScreen() {
       } else {
         router.replace('/(onboarding)/educator-setup');
       }
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Could not save role choice.');
+    } catch (e) {
+      Alert.alert('Error', reportError('role-selection', e));
     } finally {
       setLoading(false);
     }

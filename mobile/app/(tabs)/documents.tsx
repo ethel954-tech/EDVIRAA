@@ -13,6 +13,7 @@ import * as Linking from 'expo-linking';
 import { supabase } from '../../src/lib/supabase';
 import { getActiveSubject, type Subject } from '../../src/lib/subjects';
 import { uploadAndProcessPdf, pollDocumentStatus } from '../../src/lib/documentUpload';
+import { reportError } from '../../src/lib/userMessages';
 import { colors, radius } from '../../src/lib/theme';
 import { PRIVACY_NOTICE } from '../../src/lib/privacyNotice';
 import { AppDrawer } from '../../src/components/Drawer';
@@ -35,8 +36,8 @@ export default function MobileDocumentsScreen() {
       });
       if (error) throw new Error(error.message);
       fetchDocuments();
-    } catch (e: any) {
-      Alert.alert('Could not add summary', e?.message || 'Please try again later.');
+    } catch (e) {
+      Alert.alert('Could not add summary', reportError('documents.addSummary', e));
     } finally {
       setSummarizingId(null);
     }

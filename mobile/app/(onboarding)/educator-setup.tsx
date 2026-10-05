@@ -11,6 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
 import { colors, radius } from '../../src/lib/theme';
+import { reportError } from '../../src/lib/userMessages';
 
 export default function EducatorSetupScreen() {
   const router = useRouter();
@@ -36,8 +37,8 @@ export default function EducatorSetupScreen() {
       if (error) throw error;
 
       router.replace('/educator');
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Could not complete profile setup.');
+    } catch (e) {
+      Alert.alert('Error', reportError('educator-setup', e));
     } finally {
       setLoading(false);
     }

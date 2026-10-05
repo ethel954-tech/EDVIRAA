@@ -12,6 +12,7 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
 import { colors, radius } from '../../src/lib/theme';
+import { reportError } from '../../src/lib/userMessages';
 import { Plus, Check, BookOpen } from 'lucide-react-native';
 
 const PRESET_SUBJECTS = [
@@ -65,8 +66,8 @@ export default function SelectSubjectsScreen() {
       if (error) throw error;
 
       router.replace('/(tabs)');
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Could not save your subjects.');
+    } catch (e) {
+      Alert.alert('Error', reportError('select-subjects', e));
     } finally {
       setLoading(false);
     }

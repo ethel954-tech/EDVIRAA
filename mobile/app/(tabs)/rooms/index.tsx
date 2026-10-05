@@ -14,6 +14,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { supabase } from '../../../src/lib/supabase';
 import { colors, radius } from '../../../src/lib/theme';
 import { AppDrawer } from '../../../src/components/Drawer';
+import { reportError } from '../../../src/lib/userMessages';
 import { Menu, KeyRound, Plus, Users, ChevronRight, X } from 'lucide-react-native';
 
 export default function MobileRoomsScreen() {
@@ -70,17 +71,9 @@ export default function MobileRoomsScreen() {
       } else {
         fetchRooms();
       }
-    } catch (e: any) {
-      const raw = e?.message ?? '';
-      if (raw.includes('Educator verification is required')) {
-        Alert.alert(
-          'Error',
-          'Your educator account is awaiting verification. Verify on the Edvira web app to create teacher rooms.'
-        );
-      } else {
-        console.error('create_room failed:', e);
-        Alert.alert('Error', 'Could not create the room. Please try again.');
-      }
+    } catch (e) {
+      const userMessage = reportError('rooms.createRoom', e);
+      Alert.alert('Error', userMessage);
     } finally {
       setBusy(false);
     }
@@ -102,8 +95,8 @@ export default function MobileRoomsScreen() {
       } else {
         fetchRooms();
       }
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Join room failed.');
+    } catch (e) {
+      Alert.alert('Error', reportError('rooms.joinRoom', e));
     } finally {
       setBusy(false);
     }

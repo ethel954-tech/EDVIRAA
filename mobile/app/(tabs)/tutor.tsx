@@ -23,6 +23,7 @@ import { uploadAndProcessPdf, pollDocumentStatus } from '../../src/lib/documentU
 import * as DocumentPicker from 'expo-document-picker';
 import { colors, radius } from '../../src/lib/theme';
 import { PRIVACY_NOTICE } from '../../src/lib/privacyNotice';
+import { reportError } from '../../src/lib/userMessages';
 import { AppDrawer } from '../../src/components/Drawer';
 import {
   Menu,
@@ -212,13 +213,19 @@ export default function MobileTutorScreen() {
         activeConversationIdRef.current = payload.conversationId;
         setActiveConversationId(payload.conversationId);
       }
-    } catch (e: any) {
+    } catch (e) {
+      // Non-network HTTP statuses arrive as an Error carrying the server's
+      // error text and status; reportError maps them (429 daily limit, 503,
+      // etc.) and logs the technical detail without message content.
+      console.error('[tutor] status:',
+        e instanceof Error && 'status' in e ? (e as { status?: unknown }).status : undefined);
+      const userMessage = reportError('tutor.send', e);
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantMsgId
             ? {
                 ...m,
-                content: `Sorry — ${e?.message || 'something went wrong contacting the tutor'}. Please try again.`,
+                content: userMessage,
                 pending: false,
               }
             : m
