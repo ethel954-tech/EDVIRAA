@@ -1,3 +1,4 @@
+import { AccountCard } from "@/components/account-card";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 
@@ -14,6 +15,7 @@ export default function SettingsPage() {
       <div className="mt-6 space-y-6">
         <ThemeSwitcher />
         <LanguageSwitcher />
+        <AccountCard />
       </div>
     </div>
   );
