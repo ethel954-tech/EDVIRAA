@@ -12,7 +12,7 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
 
   return (
     <div className={compact ? "mb-6 flex items-center gap-3" : "rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-5"}>
-      <div className={compact ? "text-sm font-medium text-ink" : "mb-3 text-sm font-medium text-[var(--ink)]"}>{getMessage(locale, "language")}</div>
+      <div className={compact ? "text-sm font-medium text-[var(--ink)]" : "mb-3 text-sm font-medium text-[var(--ink)]"}>{getMessage(locale, "language")}</div>
       <div className="flex flex-wrap gap-2">
         {locales.map((option) => (
           <button
