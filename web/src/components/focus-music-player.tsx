@@ -56,17 +56,29 @@ export function FocusMusicPlayer() {
       setPlaying(false);
       return;
     }
+    // Re-attach the selected source if the dev-unmount cleanup stripped it.
+    if (track.src && audio.getAttribute("src") !== track.src) {
+      audio.src = track.src;
+      audio.load();
+    }
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       setLoading(true);
-      await audio.play();
+      await Promise.race([
+        audio.play(),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error("playback-timeout")), 8000);
+        }),
+      ]);
       setPlaying(true);
     } catch {
-      setError("Playback failed — the audio file may be missing.");
+      setError("Playback failed. Please try again.");
       setPlaying(false);
     } finally {
+      if (timer !== undefined) clearTimeout(timer);
       setLoading(false);
     }
-  }, [available, playing]);
+  }, [available, playing, track.src]);
 
   const selectTrack = (id: string) => {
     if (id === trackId) return;
