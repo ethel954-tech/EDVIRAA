@@ -160,14 +160,14 @@ export default async function DashboardPage() {
               <b className="font-fraunces text-[22px] text-[var(--ink)]">{sessionsThisWeekResult.count ?? 0}</b>
               <span className="text-[12.5px] text-[var(--ink-soft)]">Sessions this week</span>
             </div>
-            <div className="card-study !p-4">
+            <Link href="/progress" className="card-study !p-4 block hover:border-[var(--teal)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2">
               <b className="font-fraunces text-[22px] text-[var(--ink)]">{badgesResult.count ?? 0}</b>
               <span className="text-[12.5px] text-[var(--ink-soft)]">Badges earned</span>
-            </div>
-            <div className="card-study !p-4">
+            </Link>
+            <Link href="/progress" className="card-study !p-4 block hover:border-[var(--teal)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2">
               <b className="font-fraunces text-[22px] text-[var(--ink)]">{completedTopics}</b>
               <span className="text-[12.5px] text-[var(--ink-soft)]">Topics completed</span>
-            </div>
+            </Link>
           </div>
 
           {/* Roadmap Summary Card */}
@@ -180,7 +180,7 @@ export default async function DashboardPage() {
                 const done = module.topics.filter((topic) => topic.completed_at).length;
                 const total = module.topics.length;
                 return (
-                  <div key={module.id} className="flex items-center gap-3.5 py-3.5">
+                  <Link key={module.id} href={subject ? `/roadmap?subject=${subject.id}` : "/roadmap"} className="flex items-center gap-3.5 py-3.5">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-[var(--teal-pale)] text-[var(--teal-dark)]">
                       {module.status === "complete" ? <Check className="h-4 w-4 stroke-[2.5]" /> : module.status === "locked" ? <Lock className="h-3.5 w-3.5" /> : "•"}
                     </div>
@@ -189,7 +189,7 @@ export default async function DashboardPage() {
                       <span className="text-[12px] text-[var(--ink-soft)]">{done} of {total} topics complete</span>
                     </div>
                     <span className="text-[13px] font-semibold text-[var(--ink-soft)]">{total ? `${Math.round((done / total) * 100)}%` : "—"}</span>
-                  </div>
+                  </Link>
                 );
               }) : (
                 <p className="py-3 text-sm text-[var(--ink-soft)]">
@@ -203,15 +203,31 @@ export default async function DashboardPage() {
             <h3 className="font-fraunces text-[17px] font-semibold text-[var(--ink)] mb-3">Recent activity</h3>
             {recentActivities.length ? (
               <div className="divide-y divide-[var(--border)]">
-                {recentActivities.map((activity) => (
-                  <div key={activity.id} className="flex items-center justify-between gap-3 py-3">
-                    <div className="min-w-0">
-                      <b className="block truncate text-[14px] font-semibold text-[var(--ink)]">{activity.title}</b>
-                      <span className="text-[12px] text-[var(--ink-soft)]">{new Date(activity.createdAt).toLocaleDateString()}</span>
+                {recentActivities.map((activity) => {
+                  const href = activity.id.startsWith("quiz-")
+                    ? "/quiz"
+                    : activity.id.startsWith("session-")
+                      ? "/progress"
+                      : null;
+                  const row = (
+                    <>
+                      <div className="min-w-0">
+                        <b className="block truncate text-[14px] font-semibold text-[var(--ink)]">{activity.title}</b>
+                        <span className="text-[12px] text-[var(--ink-soft)]">{new Date(activity.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      {activity.detail ? <span className="shrink-0 text-[12px] text-[var(--ink-soft)]">{activity.detail}</span> : null}
+                    </>
+                  );
+                  return href ? (
+                    <Link key={activity.id} href={href} className="flex items-center justify-between gap-3 py-3 hover:border-[var(--teal)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2">
+                      {row}
+                    </Link>
+                  ) : (
+                    <div key={activity.id} className="flex items-center justify-between gap-3 py-3">
+                      {row}
                     </div>
-                    {activity.detail ? <span className="shrink-0 text-[12px] text-[var(--ink-soft)]">{activity.detail}</span> : null}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : <p className="text-sm text-[var(--ink-soft)]">No recent activity</p>}
           </div>
