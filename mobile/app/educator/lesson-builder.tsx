@@ -1,3 +1,9 @@
+/**
+ * NOT REACHABLE: since the web-only routing item, _layout.tsx sends every
+ * educator to /web-only (lesson building is a web-only feature; this
+ * builder also writes a plain `content` column the web lesson viewer does
+ * not render). Kept for reference only.
+ */
 import React, { useState } from 'react';
 import {
   View,

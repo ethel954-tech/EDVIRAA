@@ -1,3 +1,9 @@
+/**
+ * NOT REACHABLE: since the web-only routing item, _layout.tsx sends every
+ * educator to /web-only (grading and class insights are web-only features;
+ * this dashboard also contains hard-coded demo numbers that were replaced
+ * by an honest note). Kept for reference only.
+ */
 import React, { useEffect, useState } from 'react';
 import {
   View,

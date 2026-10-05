@@ -1,3 +1,9 @@
+/**
+ * NOT REACHABLE: since the web-only routing item, _layout.tsx sends every
+ * educator to /web-only (grading, exam building and insights are web-only
+ * features; the exam builder here also writes a jsonb `questions` column
+ * that does not match the web schema). Kept for reference only.
+ */
 import React, { useState } from 'react';
 import {
   View,
