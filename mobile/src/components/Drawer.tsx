@@ -31,22 +31,16 @@ interface DrawerProps {
   isOpen: boolean;
   onClose: () => void;
   userProfile?: any;
+  /** Real recent chat topics from the tutor; omit for an empty state. */
   recentChats?: string[];
   onSelectRecentChat?: (topic: string) => void;
 }
-
-export const RECENT_CHATS_DEFAULT = [
-  'Cell structure questions',
-  'Osmosis vs diffusion',
-  'Photosynthesis recap',
-  'DNA replication steps',
-];
 
 export function AppDrawer({
   isOpen,
   onClose,
   userProfile,
-  recentChats = RECENT_CHATS_DEFAULT,
+  recentChats = [],
   onSelectRecentChat,
 }: DrawerProps) {
   const router = useRouter();
@@ -183,7 +177,12 @@ export function AppDrawer({
 
             {/* Recent Tutor Chats */}
             <Text style={styles.recentsLabel}>Recent tutor chats</Text>
-            {recentChats.map((topic, index) => (
+            {recentChats.length === 0 ? (
+              <Text style={styles.recentEmpty}>
+                No recent chats yet — start one in AI Tutor.
+              </Text>
+            ) : (
+              recentChats.map((topic, index) => (
               <TouchableOpacity
                 key={index}
                 style={styles.recentItem}
@@ -201,7 +200,8 @@ export function AppDrawer({
                   {topic}
                 </Text>
               </TouchableOpacity>
-            ))}
+              ))
+            )}
           </ScrollView>
 
           {/* Drawer Bottom Actions */}
@@ -347,6 +347,12 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     color: colors.ink,
     flex: 1,
+  },
+  recentEmpty: {
+    fontSize: 13,
+    color: colors.inkSoft,
+    paddingLeft: 4,
+    marginBottom: 8,
   },
   dbottom: {
     marginTop: 'auto',

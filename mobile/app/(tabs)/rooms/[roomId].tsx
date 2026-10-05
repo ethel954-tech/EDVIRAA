@@ -28,10 +28,7 @@ export default function RoomDetailScreen() {
   const router = useRouter();
   const [roomName, setRoomName] = useState<string>('');
   const [memberCount, setMemberCount] = useState<number>(0);
-  const [messages, setMessages] = useState<Message[]>([
-    { id: '1', user_id: 'other', content: 'Jordan: I always mix up valence electrons.', created_at: new Date().toISOString() },
-    { id: '2', user_id: 'me', content: 'Valence electrons determine element reactivity!', created_at: new Date().toISOString() },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -149,23 +146,14 @@ export default function RoomDetailScreen() {
         contentContainerStyle={styles.content}
         onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
       >
-        {/* Shared Quiz Card Widget */}
-        <View style={styles.quizCard}>
-          <Text style={styles.quizHeader}>Shared quiz · Question 3 of 10</Text>
-          <Text style={styles.quizQuestion}>What determines an element&apos;s reactivity?</Text>
-
-          <View style={styles.quizOpt}>
-            <Text style={styles.quizOptText}>Atomic mass</Text>
-          </View>
-          <View style={styles.quizOptRight}>
-            <Text style={styles.quizOptRightText}>Valence electrons ✓</Text>
-          </View>
-          <View style={styles.quizOpt}>
-            <Text style={styles.quizOptText}>Number of protons</Text>
-          </View>
-        </View>
-
         {/* Realtime Chat Thread */}
+        {messages.length === 0 ? (
+          <View style={styles.emptyChat}>
+            <Text style={styles.emptyChatText}>
+              No messages yet — say hello to get the discussion going.
+            </Text>
+          </View>
+        ) : null}
         {messages.map((m) => {
           const isMe = m.user_id !== 'other';
           return (
@@ -206,30 +194,8 @@ const styles = StyleSheet.create({
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.teal },
   sub: { fontSize: 12, color: colors.inkSoft, marginTop: 2 },
   content: { padding: 16, gap: 12 },
-  quizCard: {
-    backgroundColor: colors.tealPale,
-    borderRadius: radius.md,
-    padding: 14,
-    marginBottom: 8,
-  },
-  quizHeader: { fontSize: 11, fontWeight: '700', color: colors.tealDark, marginBottom: 4 },
-  quizQuestion: { fontSize: 13.5, fontWeight: '600', color: colors.ink, marginBottom: 8 },
-  quizOpt: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    padding: 8,
-    marginBottom: 4,
-  },
-  quizOptText: { fontSize: 12, color: colors.inkSoft },
-  quizOptRight: {
-    backgroundColor: colors.teal,
-    borderRadius: radius.sm,
-    padding: 8,
-    marginBottom: 4,
-  },
-  quizOptRightText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  emptyChat: { padding: 16, alignItems: 'center' },
+  emptyChatText: { fontSize: 12.5, color: colors.inkSoft, textAlign: 'center' },
   msgBubble: {
     maxWidth: '80%',
     padding: 12,

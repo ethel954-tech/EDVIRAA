@@ -26,26 +26,7 @@ export type FocusTrack = {
 const DEFAULT_TRACK_ASSET = require('../../assets/audio/quiet-piano-loop.wav');
 
 export const FOCUS_TRACKS: FocusTrack[] = [
-  { id: 'gentle-rain', title: 'Gentle Rain', artist: 'EDVIRAA', source: DEFAULT_TRACK_ASSET, license: 'CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.' },
-  { id: 'deep-focus-loop', title: 'Deep Focus Loop', artist: 'EDVIRAA', source: DEFAULT_TRACK_ASSET, license: 'CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.' },
   { id: 'quiet-piano', title: 'Quiet Piano', artist: 'EDVIRAA', source: DEFAULT_TRACK_ASSET, license: 'CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.' },
-  { id: 'morning-breeze', title: 'Morning Breeze', artist: 'EDVIRAA', source: DEFAULT_TRACK_ASSET, license: 'CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.' },
-  { id: 'cloud-hush', title: 'Cloud Hush', artist: 'EDVIRAA', source: DEFAULT_TRACK_ASSET, license: 'CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.' },
-  { id: 'sunrise-drift', title: 'Sunrise Drift', artist: 'EDVIRAA', source: DEFAULT_TRACK_ASSET, license: 'CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.' },
-  { id: 'studio-silence', title: 'Studio Silence', artist: 'EDVIRAA', source: DEFAULT_TRACK_ASSET, license: 'CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.' },
-  { id: 'paper-sky', title: 'Paper Sky', artist: 'EDVIRAA', source: DEFAULT_TRACK_ASSET, license: 'CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.' },
-  { id: 'glass-river', title: 'Glass River', artist: 'EDVIRAA', source: DEFAULT_TRACK_ASSET, license: 'CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.' },
-  { id: 'slow-bloom', title: 'Slow Bloom', artist: 'EDVIRAA', source: DEFAULT_TRACK_ASSET, license: 'CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.' },
-  { id: 'marble-mist', title: 'Marble Mist', artist: 'EDVIRAA', source: DEFAULT_TRACK_ASSET, license: 'CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.' },
-  { id: 'dune-hum', title: 'Dune Hum', artist: 'EDVIRAA', source: DEFAULT_TRACK_ASSET, license: 'CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.' },
-  { id: 'calm-echo', title: 'Calm Echo', artist: 'EDVIRAA', source: DEFAULT_TRACK_ASSET, license: 'CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.' },
-  { id: 'soft-pines', title: 'Soft Pines', artist: 'EDVIRAA', source: DEFAULT_TRACK_ASSET, license: 'CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.' },
-  { id: 'golden-hour', title: 'Golden Hour', artist: 'EDVIRAA', source: DEFAULT_TRACK_ASSET, license: 'CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.' },
-  { id: 'twilight-loop', title: 'Twilight Loop', artist: 'EDVIRAA', source: DEFAULT_TRACK_ASSET, license: 'CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.' },
-  { id: 'ember-glow', title: 'Ember Glow', artist: 'EDVIRAA', source: DEFAULT_TRACK_ASSET, license: 'CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.' },
-  { id: 'still-water', title: 'Still Water', artist: 'EDVIRAA', source: DEFAULT_TRACK_ASSET, license: 'CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.' },
-  { id: 'night-signal', title: 'Night Signal', artist: 'EDVIRAA', source: DEFAULT_TRACK_ASSET, license: 'CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.' },
-  { id: 'focus-lilt', title: 'Focus Lilt', artist: 'EDVIRAA', source: DEFAULT_TRACK_ASSET, license: 'CC0 — generated in-house for EDVIRAA app use; no third-party copyright restrictions.' },
 ];
 
 const STORAGE_KEY_TRACK = "focus-music.trackId";

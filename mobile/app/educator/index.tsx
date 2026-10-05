@@ -69,13 +69,13 @@ export default function MobileEducatorDashboard() {
         <Text style={styles.sub}>{profile?.display_name || 'Teacher'} · {profile?.subject_area || 'Biology'}</Text>
       </View>
 
-      {/* Violet Hero Banner: Submissions Need Grading */}
+      {/* Violet Hero Banner */}
       <View style={styles.heroCard}>
-        <Text style={styles.heroNum}>12</Text>
-        <View style={styles.heroTextCol}>
-          <Text style={styles.heroTitle}>Submissions need grading</Text>
-          <Text style={styles.heroSub}>Chem exam prep · assigned 2 days ago</Text>
-        </View>
+        <Text style={styles.heroTitle}>Grading & class insights live on web</Text>
+        <Text style={styles.heroSub}>
+          Review submissions, launch exams, and see knowledge gaps from the
+          Edvira web app. Here you can see your rooms below.
+        </Text>
       </View>
 
       {/* Quick Action Buttons */}
@@ -133,35 +133,11 @@ export default function MobileEducatorDashboard() {
       {/* Class Knowledge Gaps */}
       <View style={styles.card}>
         <Text style={styles.sectionHeader}>Class knowledge gaps</Text>
-        <View style={styles.gapItem}>
-          <View style={styles.gapHeader}>
-            <Text style={styles.gapName}>Membrane transport</Text>
-            <Text style={styles.gapPct}>68%</Text>
-          </View>
-          <View style={styles.barBg}>
-            <View style={[styles.barFill, { width: '68%' }]} />
-          </View>
-        </View>
-
-        <View style={styles.gapItem}>
-          <View style={styles.gapHeader}>
-            <Text style={styles.gapName}>Cell division</Text>
-            <Text style={styles.gapPct}>41%</Text>
-          </View>
-          <View style={styles.barBg}>
-            <View style={[styles.barFill, { width: '41%' }]} />
-          </View>
-        </View>
-
-        <View style={styles.gapItem}>
-          <View style={styles.gapHeader}>
-            <Text style={styles.gapName}>Photosynthesis</Text>
-            <Text style={styles.gapPct}>22%</Text>
-          </View>
-          <View style={styles.barBg}>
-            <View style={[styles.barFill, { width: '22%' }]} />
-          </View>
-        </View>
+        <Text style={styles.gapEmpty}>
+          Knowledge-gap insights are available on the Edvira web app
+          (Rooms → Insights), where quiz and exam mistakes are aggregated
+          across your rooms.
+        </Text>
       </View>
     </ScrollView>
   );
@@ -186,7 +162,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   heroNum: { fontSize: 36, fontWeight: '700', color: colors.violetDark },
-  heroTextCol: { flex: 1 },
   heroTitle: { fontSize: 17, fontWeight: '700', color: colors.ink },
   heroSub: { fontSize: 12, color: colors.inkSoft, marginTop: 2 },
   actionRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
@@ -222,10 +197,5 @@ const styles = StyleSheet.create({
   roomMain: { flex: 1 },
   roomTitle: { fontSize: 14, fontWeight: '600', color: colors.ink },
   roomSub: { fontSize: 11, color: colors.inkSoft },
-  gapItem: { marginBottom: 12 },
-  gapHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  gapName: { fontSize: 13, color: colors.ink },
-  gapPct: { fontSize: 13, fontWeight: '700', color: colors.violet },
-  barBg: { height: 6, backgroundColor: colors.border, borderRadius: 3, overflow: 'hidden' },
-  barFill: { height: '100%', backgroundColor: colors.violet },
+  gapEmpty: { fontSize: 13, color: colors.inkSoft, lineHeight: 19 },
 });

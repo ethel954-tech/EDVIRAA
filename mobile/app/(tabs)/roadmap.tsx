@@ -9,60 +9,19 @@ import {
 import { useRouter } from 'expo-router';
 import { colors, radius } from '../../src/lib/theme';
 import { AppDrawer } from '../../src/components/Drawer';
-import { Menu, Check, Lock, ChevronDown, ChevronRight } from 'lucide-react-native';
+import { Menu, Check, Lock, ChevronDown, ChevronRight, Map } from 'lucide-react-native';
 
 type Topic = { id: string; title: string; completed: boolean };
 type Module = { id: string; title: string; status: 'complete' | 'in_progress' | 'locked'; topics: Topic[] };
 
-const INITIAL_MODULES: Module[] = [
-  {
-    id: 'm1',
-    title: 'Intro to Cells',
-    status: 'complete',
-    topics: [
-      { id: 't1', title: 'Cell Theory Basics', completed: true },
-      { id: 't2', title: 'Prokaryotes vs Eukaryotes', completed: true },
-    ],
-  },
-  {
-    id: 'm2',
-    title: 'Cell Structure',
-    status: 'in_progress',
-    topics: [
-      { id: 't3', title: 'Organelles Overview', completed: true },
-      { id: 't4', title: 'Mitochondria & Respiration', completed: true },
-      { id: 't5', title: 'Cell Membrane & Transport', completed: false },
-    ],
-  },
-  {
-    id: 'm3',
-    title: 'Membrane Transport',
-    status: 'locked',
-    topics: [
-      { id: 't6', title: 'Osmosis & Diffusion', completed: false },
-      { id: 't7', title: 'Active Transport Pumps', completed: false },
-    ],
-  },
-];
-
 export default function MobileRoadmapScreen() {
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [modules, setModules] = useState<Module[]>(INITIAL_MODULES);
-  const [expandedId, setExpandedId] = useState<string | null>('m2');
-
-  function toggleTopic(modId: string, topicId: string) {
-    setModules((prev) =>
-      prev.map((m) => {
-        if (m.id !== modId) return m;
-        const updated = m.topics.map((t) => (t.id === topicId ? { ...t, completed: !t.completed } : t));
-        const allDone = updated.every((t) => t.completed);
-        const someDone = updated.some((t) => t.completed);
-        const status = allDone ? 'complete' : someDone ? 'in_progress' : 'locked';
-        return { ...m, topics: updated, status };
-      })
-    );
-  }
+  // Roadmap data is generated and stored server-side (web uses the
+  // generate-roadmap edge function). Until that is wired up on mobile the
+  // screen shows an honest empty state instead of demo modules.
+  const [modules] = useState<Module[]>([]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
     <View style={styles.outerContainer}>
@@ -76,29 +35,34 @@ export default function MobileRoadmapScreen() {
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>Your roadmap</Text>
-            <Text style={styles.sub}>Biology 101</Text>
+            <Text style={styles.sub}>Per subject, from your modules</Text>
           </View>
         </View>
 
         {/* Hero Focus Card */}
         <View style={styles.heroCard}>
           <View style={styles.ringBadge}>
-            <Text style={styles.ringText}>62%</Text>
+            <Text style={styles.ringText}>—</Text>
             <Text style={styles.ringSub}>Overall</Text>
           </View>
           <View style={styles.heroTextCol}>
             <Text style={styles.heroEyebrow}>Current focus</Text>
-            <Text style={styles.heroTitle}>Cell Structure</Text>
-            <View style={styles.tagRow}>
-              <View style={styles.tag}><Text style={styles.tagText}>Organelles</Text></View>
-              <View style={styles.tag}><Text style={styles.tagText}>Membrane</Text></View>
-            </View>
+            <Text style={styles.heroTitle}>No roadmap yet</Text>
           </View>
         </View>
 
         {/* Modules List */}
         <View style={styles.card}>
-          {modules.map((m, index) => {
+          {modules.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Map size={32} color={colors.inkSoft} />
+              <Text style={styles.emptyTitle}>No roadmap generated yet</Text>
+              <Text style={styles.emptyText}>
+                Generate your roadmap from the Edvira web app, or from the Home
+                tab once generation is available on mobile.
+              </Text>
+            </View>
+          ) : modules.map((m, index) => {
             const doneCount = m.topics.filter((t) => t.completed).length;
             const pct = Math.round((doneCount / m.topics.length) * 100);
             const isExpanded = expandedId === m.id;
@@ -138,11 +102,7 @@ export default function MobileRoadmapScreen() {
                         <TouchableOpacity
                           key={t.id}
                           style={styles.topicRow}
-                          onPress={() =>
-                            isUpNext
-                              ? router.push(`/lessons/${t.id}`)
-                              : toggleTopic(m.id, t.id)
-                          }
+                          onPress={() => router.push(`/lessons/${t.id}`)}
                           disabled={m.status === 'locked'}
                         >
                           <View style={[styles.checkCircle, t.completed && styles.checkCircleOn]}>
@@ -214,9 +174,6 @@ const styles = StyleSheet.create({
   heroTextCol: { flex: 1 },
   heroEyebrow: { fontSize: 11, fontWeight: '600', color: colors.inkSoft },
   heroTitle: { fontSize: 18, fontWeight: '700', color: colors.ink, marginVertical: 2 },
-  tagRow: { flexDirection: 'row', gap: 6, marginTop: 4 },
-  tag: { backgroundColor: colors.violetPale, paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.full },
-  tagText: { fontSize: 11, fontWeight: '600', color: colors.violet },
   card: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -234,6 +191,9 @@ const styles = StyleSheet.create({
   modTitle: { fontSize: 14, fontWeight: '600', color: colors.ink },
   modSub: { fontSize: 11, color: colors.inkSoft },
   pctText: { fontSize: 13, fontWeight: '600', color: colors.inkSoft },
+  emptyState: { alignItems: 'center', padding: 32, gap: 8 },
+  emptyTitle: { fontSize: 15, fontWeight: '700', color: colors.ink, textAlign: 'center' },
+  emptyText: { fontSize: 13, color: colors.inkSoft, textAlign: 'center', lineHeight: 18 },
   topicList: { backgroundColor: colors.bg, padding: 12, borderTopWidth: 1, borderTopColor: colors.border, gap: 8 },
   topicRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
   checkCircle: { width: 16, height: 16, borderRadius: 8, borderWidth: 1, borderColor: colors.border, justifyContent: 'center', alignItems: 'center' },
