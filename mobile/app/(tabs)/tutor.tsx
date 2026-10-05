@@ -24,6 +24,15 @@ import * as DocumentPicker from 'expo-document-picker';
 import { colors, radius } from '../../src/lib/theme';
 import { PRIVACY_NOTICE } from '../../src/lib/privacyNotice';
 import { reportError } from '../../src/lib/userMessages';
+
+/** Thrown for a tutor-chat HTTP error; carries the status for mapping. */
+class TutorHttpError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
 import { AppDrawer } from '../../src/components/Drawer';
 import {
   Menu,
@@ -190,7 +199,10 @@ export default function MobileTutorScreen() {
 
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload?.error || `Tutor request failed (${response.status})`);
+        throw new TutorHttpError(
+          typeof payload?.error === 'string' ? payload.error : `Tutor request failed (${response.status})`,
+          response.status,
+        );
       }
 
       setMessages((prev) =>
@@ -214,12 +226,11 @@ export default function MobileTutorScreen() {
         setActiveConversationId(payload.conversationId);
       }
     } catch (e) {
-      // Non-network HTTP statuses arrive as an Error carrying the server's
-      // error text and status; reportError maps them (429 daily limit, 503,
-      // etc.) and logs the technical detail without message content.
-      console.error('[tutor] status:',
-        e instanceof Error && 'status' in e ? (e as { status?: unknown }).status : undefined);
-      const userMessage = reportError('tutor.send', e);
+      // reportError maps status 429 → daily-limit message (tutor is an AI
+      // context), 503 → temporarily unavailable, network failures → no
+      // connection, and anything else → a generic fallback. Technical
+      // detail (code/status/message ≤120 chars) is logged, never shown.
+      const userMessage = reportError('tutor', e);
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantMsgId

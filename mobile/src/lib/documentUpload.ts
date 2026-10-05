@@ -1,6 +1,14 @@
 import { supabase } from '../lib/supabase';
 import { getActiveSubject, type Subject } from '../lib/subjects';
 import * as FileSystem from 'expo-file-system';
+import { reportError, reportInvokeError } from './userMessages';
+
+/**
+ * Validation errors thrown by validatePdf start with a quoted file name
+ * ("\"file.pdf\" is not a PDF.") — already user-facing, passed through.
+ * Everything else is mapped by userMessages.
+ */
+const VALIDATION_PREFIXES = ['"', 'No subject'];
 
 /**
  * Shared PDF ingestion flow used by the mobile Documents screen and the
@@ -140,8 +148,10 @@ export async function uploadAndProcessPdf({
         .from('documents')
         .update({ status: 'failed' })
         .eq('id', documentId);
+      // Mapped message (429 daily limit / 503 / network / too many pages);
+      // technical detail logged by reportInvokeError, never shown.
       throw new Error(
-        `Could not start processing: ${await getFunctionErrorMessage(invokeError)}`,
+        await reportInvokeError('process-document', invokeError),
       );
     }
 
@@ -149,20 +159,13 @@ export async function uploadAndProcessPdf({
   } catch (e: any) {
     return {
       ok: false,
-      error: e?.message || 'Upload failed. Please try again.',
+      // Validation errors thrown by this function are already user-facing;
+      // anything else (DB/storage errors) is mapped through describeError.
+      error: e instanceof Error && e.message.startsWith('"') || VALIDATION_PREFIXES.some((p) => e?.message?.startsWith?.(p))
+        ? e.message
+        : reportError('process-document', e),
     };
   }
-}
-
-async function getFunctionErrorMessage(error: { message: string; context?: unknown }): Promise<string> {
-  if (error.context instanceof Response) {
-    const payload = await error.context.clone().json().catch(() => null) as
-      | { error?: unknown; message?: unknown }
-      | null;
-    if (typeof payload?.error === 'string') return payload.error;
-    if (typeof payload?.message === 'string') return payload.message;
-  }
-  return error.message;
 }
 
 /**

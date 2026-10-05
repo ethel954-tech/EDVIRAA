@@ -13,7 +13,7 @@ import * as Linking from 'expo-linking';
 import { supabase } from '../../src/lib/supabase';
 import { getActiveSubject, type Subject } from '../../src/lib/subjects';
 import { uploadAndProcessPdf, pollDocumentStatus } from '../../src/lib/documentUpload';
-import { reportError } from '../../src/lib/userMessages';
+import { reportError, reportInvokeError } from '../../src/lib/userMessages';
 import { colors, radius } from '../../src/lib/theme';
 import { PRIVACY_NOTICE } from '../../src/lib/privacyNotice';
 import { AppDrawer } from '../../src/components/Drawer';
@@ -34,10 +34,10 @@ export default function MobileDocumentsScreen() {
       const { error } = await supabase.functions.invoke('backfill-summary', {
         body: { documentId: doc.id },
       });
-      if (error) throw new Error(error.message);
+      if (error) throw error; // keep FunctionsHttpError (context Response) intact
       fetchDocuments();
     } catch (e) {
-      Alert.alert('Could not add summary', reportError('documents.addSummary', e));
+      Alert.alert('Could not add summary', await reportInvokeError('process-document.backfill-summary', e));
     } finally {
       setSummarizingId(null);
     }
