@@ -89,7 +89,7 @@ export default function MobileExamBuilderScreen() {
 
       if (error) {
         console.error('Exam insert error:', error);
-        Alert.alert('Error', error.message || 'Failed to create exam. Please ensure the "exams" table exists and you have proper permissions.');
+        Alert.alert('Error', 'Could not create the exam. Please try again.');
         setLoading(false);
         return;
       }

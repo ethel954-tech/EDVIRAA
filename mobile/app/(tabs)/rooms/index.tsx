@@ -71,7 +71,16 @@ export default function MobileRoomsScreen() {
         fetchRooms();
       }
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Could not create room.');
+      const raw = e?.message ?? '';
+      if (raw.includes('Educator verification is required')) {
+        Alert.alert(
+          'Error',
+          'Your educator account is awaiting verification. Verify on the Edvira web app to create teacher rooms.'
+        );
+      } else {
+        console.error('create_room failed:', e);
+        Alert.alert('Error', 'Could not create the room. Please try again.');
+      }
     } finally {
       setBusy(false);
     }

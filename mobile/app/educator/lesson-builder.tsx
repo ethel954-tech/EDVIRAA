@@ -37,7 +37,7 @@ export default function MobileLessonBuilderScreen() {
 
       if (error) {
         console.error('Lesson insert error:', error);
-        Alert.alert('Error', error.message || 'Failed to create lesson. Please ensure the "lessons" table exists and you have proper permissions.');
+        Alert.alert('Error', 'Could not create the lesson. Please try again.');
         setLoading(false);
         return;
       }

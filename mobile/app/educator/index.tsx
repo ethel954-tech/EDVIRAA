@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
@@ -81,7 +82,12 @@ export default function MobileEducatorDashboard() {
       <View style={styles.actionRow}>
         <TouchableOpacity
           style={styles.actionBtnViolet}
-          onPress={() => router.push('/educator/lesson-builder')}
+          onPress={() =>
+            Alert.alert(
+              'Available on web',
+              'Creating lessons and exams is available on the Edvira web app for now.'
+            )
+          }
         >
           <BookOpen size={16} color="#fff" />
           <Text style={styles.actionBtnText}>New Lesson</Text>
@@ -89,7 +95,12 @@ export default function MobileEducatorDashboard() {
 
         <TouchableOpacity
           style={styles.actionBtnViolet}
-          onPress={() => router.push('/educator/exam-builder')}
+          onPress={() =>
+            Alert.alert(
+              'Available on web',
+              'Creating lessons and exams is available on the Edvira web app for now.'
+            )
+          }
         >
           <ClipboardList size={16} color="#fff" />
           <Text style={styles.actionBtnText}>New Exam</Text>
