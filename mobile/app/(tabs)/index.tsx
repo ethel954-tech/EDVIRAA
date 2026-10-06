@@ -212,14 +212,14 @@ export default function MobileDashboardScreen() {
         </View>
 
         {/* Greeting Banner & Subject Chip */}
-        <View style={styles.greetingHeader}>
-          <Text style={styles.greeting}>Welcome back{profile?.display_name ? `, ${profile.display_name}` : ''}</Text>
+        <View style={[styles.greetingHeader, { flexShrink: 1 }]}>
+          <Text style={styles.greeting} numberOfLines={2}>Welcome back{profile?.display_name ? `, ${profile.display_name}` : ''}</Text>
           <TouchableOpacity
             style={styles.subjectChip}
             onPress={() => setSubjectModalOpen(true)}
           >
             <Text style={styles.subjectChipIcon}>📘</Text>
-            <Text style={styles.subjectChipText}>{subject?.name || 'No subjects yet'}</Text>
+            <Text style={styles.subjectChipText} numberOfLines={1}>{subject?.name || 'No subjects yet'}</Text>
             <ChevronDown size={14} color={colors.inkSoft} />
           </TouchableOpacity>
         </View>
@@ -244,12 +244,12 @@ export default function MobileDashboardScreen() {
 
         {/* Hero Focus Card: Continue Roadmap */}
         <View style={styles.heroCard}>
-          <View style={styles.cardHeaderRow}>
+          <View style={[styles.cardHeaderRow, { flexShrink: 1 }]}>
             <Text style={styles.cardEyebrow}>
               {subject?.name || 'No subjects yet'} · Roadmap
             </Text>
           </View>
-          <Text style={styles.cardTitle}>{currentModule?.title || (subject ? 'No roadmap yet' : 'No subjects yet')}</Text>
+          <Text style={styles.cardTitle} numberOfLines={2}>{currentModule?.title || (subject ? 'No roadmap yet' : 'No subjects yet')}</Text>
 
           <View style={styles.progressRow}>
             <TouchableOpacity
@@ -329,15 +329,14 @@ export default function MobileDashboardScreen() {
                 key={r.id || i}
                   style={i % 2 === 0 ? styles.roomRowViolet : styles.roomRowTeal}
                 onPress={() => router.push(`/(tabs)/rooms/${r.id}`)}
-              >
-                <View>
-                  <Text style={styles.roomName}>{r.name}</Text>
-                  <Text style={styles.roomSub}>
-                    {r.type === 'teacher' ? 'Teacher room' : 'Peer study'}
-                  </Text>
-                </View>
-                <Users size={18} color={colors.inkSoft} />
-              </TouchableOpacity>
+              >                  <View style={{ flex: 1 }}>
+                    <Text style={styles.roomName} numberOfLines={1}>{r.name}</Text>
+                    <Text style={styles.roomSub}>
+                      {r.type === 'teacher' ? 'Teacher room' : 'Peer study'}
+                    </Text>
+                  </View>
+                  <Users size={18} color={colors.inkSoft} />
+                </TouchableOpacity>
             ))
           )}
         </View>
@@ -444,7 +443,7 @@ const styles = StyleSheet.create({
   content: {
     padding: 18,
     paddingTop: 54,
-    paddingBottom: 90,
+    paddingBottom: 160,
   },
   center: {
     flex: 1,
@@ -510,6 +509,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.ink,
     letterSpacing: -0.4,
+    flexShrink: 1,
   },
   subjectChip: {
     alignSelf: 'flex-start',
@@ -523,6 +523,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     marginTop: 8,
+    maxWidth: 220,
   },
   subjectChipIcon: {
     fontSize: 13,
@@ -534,6 +535,7 @@ const styles = StyleSheet.create({
   },
   pillRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
     marginBottom: 18,
   },
@@ -563,7 +565,7 @@ const styles = StyleSheet.create({
   tealPillText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.tealDark,
+    color: colors.ink,
   },
   heroCard: {
     backgroundColor: colors.surface,
@@ -577,6 +579,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexShrink: 1,
   },
   cardEyebrow: {
     fontSize: 12,
@@ -651,9 +654,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingVertical: 9,
     paddingHorizontal: 12,
-  },
-  btnSecondaryText: {
-    color: colors.violet,
+  },  btnSecondaryText: {
+    color: colors.violetDark,
     fontSize: 13,
     fontWeight: '700',
   },

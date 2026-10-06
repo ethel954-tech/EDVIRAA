@@ -4,7 +4,7 @@ export const lightColors = {
   tealDark: "#0A5544",
   tealPale: "#E1F1EC",
   violet: "#6C4BC8",
-  violetDark: "#4F359B",
+  violetDark: "#4F359B",  // dark violet for text/icons on pale-violet surfaces (light theme)
   violetPale: "#EDE7FA",
   amber: "#E8A33D",
   amberPale: "#FCEFDA",
@@ -25,6 +25,7 @@ export const darkColors = {
   inkSoft: "#93A6A0",
   border: "#25332E",
   tealPale: "#123A2E",
+  violetDark: "#CDBBFA",  // light violet for text/icons on dark #241B42 surfaces
   violetPale: "#241B42",
   amberPale: "#3A2A0F",
 };
