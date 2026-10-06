@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { supabase } from "../../src/lib/supabase";
@@ -17,7 +18,7 @@ import {
 } from "../../src/lib/subjects";
 import { colors, radius } from "../../src/lib/theme";
 import { AppDrawer } from "../../src/components/Drawer";
-import { Menu, Check, Lock, ChevronDown, Map } from "lucide-react-native";
+import { Menu, Check, Circle, ChevronDown, Map } from "lucide-react-native";
 
 type TopicRow = {
   id: string;
@@ -32,6 +33,10 @@ type ModuleRow = {
   status: string;
   topics: TopicRow[];
 };
+type ToggleResult = {
+  xp_awarded?: number;
+  new_badges?: string[] | string | null;
+} | null;
 
 export default function MobileRoadmapScreen() {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -41,59 +46,99 @@ export default function MobileRoadmapScreen() {
   const [modules, setModules] = useState<ModuleRow[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [reloadTick, setReloadTick] = useState(0);
+  const [busyTopicIds, setBusyTopicIds] = useState<Set<string>>(new Set());
   const hasLoadedOnce = useRef(false);
+  const cancelledRef = useRef(false);
+
+  const loadData = useCallback(async () => {
+    setLoading(!hasLoadedOnce.current);
+    setLoadError(null);
+    try {
+      const subs = await listSubjects();
+      const activeSub = await getActiveSubject();
+      const selectedSubject = activeSub || subs[0] || null;
+
+      const { data: moduleRows, error: modulesError } = selectedSubject
+        ? await supabase
+            .from("modules")
+            .select(
+              "id, title, order_index, status, topics(id, title, order_index, completed_at)",
+            )
+            .eq("subject_id", selectedSubject.id)
+            .order("order_index", { ascending: true })
+        : { data: [], error: null };
+      if (modulesError) throw modulesError;
+
+      if (cancelledRef.current) return;
+      setSubject(selectedSubject);
+      setModules(
+        (moduleRows ?? []).map((module: any) => ({
+          ...module,
+          topics: [...(module.topics ?? [])].sort(
+            (left: any, right: any) => left.order_index - right.order_index,
+          ),
+        })),
+      );
+      hasLoadedOnce.current = true;
+    } catch (error) {
+      if (cancelledRef.current) return;
+      setLoadError(reportError("roadmap", error));
+    } finally {
+      if (!cancelledRef.current) setLoading(false);
+    }
+    // reloadTick changes the callback identity so a Retry re-runs the load.
+  }, [reloadTick]);
 
   useFocusEffect(
     useCallback(() => {
-      let cancelled = false;
-
-      async function loadData() {
-        setLoading(!hasLoadedOnce.current);
-        setLoadError(null);
-        try {
-          const subs = await listSubjects();
-          const activeSub = await getActiveSubject();
-          const selectedSubject = activeSub || subs[0] || null;
-
-          const { data: moduleRows, error: modulesError } = selectedSubject
-            ? await supabase
-                .from("modules")
-                .select(
-                  "id, title, order_index, status, topics(id, title, order_index, completed_at)",
-                )
-                .eq("subject_id", selectedSubject.id)
-                .order("order_index", { ascending: true })
-            : { data: [], error: null };
-          if (modulesError) throw modulesError;
-
-          if (cancelled) return;
-          setSubject(selectedSubject);
-          setModules(
-            (moduleRows ?? []).map((module: any) => ({
-              ...module,
-              topics: [...(module.topics ?? [])].sort(
-                (left: any, right: any) => left.order_index - right.order_index,
-              ),
-            })),
-          );
-          hasLoadedOnce.current = true;
-        } catch (error) {
-          if (cancelled) return;
-          console.log("[roadmap] load failed", {
-            code: (error as { code?: string }).code,
-          });
-          setLoadError(reportError("roadmap", error));
-        } finally {
-          if (!cancelled) setLoading(false);
-        }
-      }
-
+      cancelledRef.current = false;
       void loadData();
       return () => {
-        cancelled = true;
+        cancelledRef.current = true;
       };
-    }, [reloadTick]),
+    }, [loadData]),
   );
+
+  async function handleToggleTopic(topic: TopicRow) {
+    if (busyTopicIds.has(topic.id)) return;
+    setBusyTopicIds((prev) => new Set(prev).add(topic.id));
+    try {
+      const { data, error } = await supabase.rpc("toggle_topic_completion", {
+        p_topic_id: topic.id,
+        p_completed: !topic.completed_at,
+      });
+      if (error) throw error;
+
+      if (!cancelledRef.current) await loadData();
+
+      const result: ToggleResult = Array.isArray(data)
+        ? ((data[0] as ToggleResult) ?? null)
+        : ((data as ToggleResult) ?? null);
+      const xp = result?.xp_awarded ?? 0;
+      const badges = Array.isArray(result?.new_badges)
+        ? result!.new_badges!
+        : result?.new_badges
+          ? [String(result.new_badges)]
+          : [];
+      if (xp > 0 || badges.length > 0) {
+        Alert.alert(
+          xp > 0 ? `+${xp} XP` : "Badge earned!",
+          badges.length > 0 ? badges.join(", ") : "",
+        );
+      }
+    } catch (error) {
+      console.log("[roadmap] toggle failed", {
+        code: (error as { code?: string }).code,
+      });
+      Alert.alert("Couldn't update topic", reportError("roadmap", error));
+    } finally {
+      setBusyTopicIds((prev) => {
+        const next = new Set(prev);
+        next.delete(topic.id);
+        return next;
+      });
+    }
+  }
 
   if (loading && !hasLoadedOnce.current) {
     return (
@@ -193,7 +238,7 @@ export default function MobileRoadmapScreen() {
                       ) : status === "in_progress" ? (
                         <Text style={styles.badgeNowText}>●</Text>
                       ) : (
-                        <Lock size={12} color={colors.inkSoft} />
+                        <Circle size={12} color={colors.inkSoft} />
                       )}
                     </View>
 
@@ -221,28 +266,39 @@ export default function MobileRoadmapScreen() {
 
                   {isExpanded ? (
                     <View style={styles.topicList}>
-                      {m.topics.map((t, j) => (
-                        <View key={t.id} style={styles.topicRow}>
-                          <View
-                            style={[
-                              styles.checkCircle,
-                              t.completed_at ? styles.checkCircleOn : null,
-                            ]}
+                      {m.topics.map((t, j) => {
+                        const busy = busyTopicIds.has(t.id);
+                        const checked = !!t.completed_at;
+                        return (
+                          <TouchableOpacity
+                            key={t.id}
+                            style={styles.topicRow}
+                            accessibilityRole="checkbox"
+                            accessibilityState={{ checked }}
+                            disabled={busy}
+                            onPress={() => handleToggleTopic(t)}
                           >
-                            {t.completed_at ? (
-                              <Check size={10} color="#fff" />
-                            ) : null}
-                          </View>
-                          <Text
-                            style={[
-                              styles.topicTitle,
-                              t.completed_at ? styles.topicTitleDone : null,
-                            ]}
-                          >
-                            {j + 1}. {t.title}
-                          </Text>
-                        </View>
-                      ))}
+                            <View
+                              style={[
+                                styles.checkCircle,
+                                checked ? styles.checkCircleOn : null,
+                              ]}
+                            >
+                              {checked ? (
+                                <Check size={10} color="#fff" />
+                              ) : null}
+                            </View>
+                            <Text
+                              style={[
+                                styles.topicTitle,
+                                checked ? styles.topicTitleDone : null,
+                              ]}
+                            >
+                              {j + 1}. {t.title}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
                   ) : null}
                 </View>
