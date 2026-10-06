@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   wrap: {
     position: 'absolute',
     right: 16,
-    bottom: 24,
+    bottom: 96,
     alignItems: 'flex-end',
     zIndex: 50,
   },
