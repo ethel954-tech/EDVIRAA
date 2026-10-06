@@ -6,12 +6,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { supabase } from "../../src/lib/supabase";
 import { colors, radius } from "../../src/lib/theme";
-import { ArrowLeft, ChevronRight, Check } from "lucide-react-native";
+import { ArrowLeft } from "lucide-react-native";
 
 export default function LessonScreen() {
   const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
@@ -20,8 +19,7 @@ export default function LessonScreen() {
   const [title, setTitle] = useState("Lesson");
   const [content, setContent] = useState<string[]>([]);
   const [progress, setProgress] = useState(0);
-  const [completed, setCompleted] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadLesson();
@@ -29,78 +27,54 @@ export default function LessonScreen() {
 
   async function loadLesson() {
     setLoading(true);
+    setError(null);
     try {
-      // A lessonId from the roadmap is a topic slug (e.g. "t5") — resolve the
-      // lesson content from the lessons table; fall back to a placeholder
-      // reader so the page always opens.
-      if (lessonId && !lessonId.startsWith("t")) {
-        const { data } = await supabase
-          .from("lessons")
-          .select("title, lesson_blocks")
-          .eq("id", lessonId)
-          .single();
-        if (data) {
-          setTitle(data.title);
-          const blocks = Array.isArray(data.lesson_blocks)
-            ? data.lesson_blocks
-            : [];
-          setContent(
-            blocks
-              .map((b: any) =>
-                typeof b?.content === "string" ? b.content : b?.text,
-              )
-              .filter(Boolean),
-          );
-        }
-      } else {
-        // Roadmap topic preview: derive the title from the id the home/roadmap
-        // screens passed (they currently push '/lessons/next').
-        setTitle(lessonId === "next" ? "Membrane Transport" : "Lesson");
-        setContent([
-          "In this lesson you will learn how substances move across the cell membrane: passive transport (diffusion and osmosis), facilitated diffusion through channel proteins, and active transport driven by ATP-dependent pumps such as the sodium-potassium pump.",
-          "After reading, use the button below to mark the lesson complete — this unlocks the next topic on your roadmap.",
-        ]);
+      if (!lessonId) {
+        setTitle("Lesson");
+        setContent([]);
+        setError("missing");
+        return;
       }
-    } catch {
-      // Keep fallback content so the page still opens
+
+      const { data, error } = await supabase
+        .from("lessons")
+        .select("title, lesson_blocks")
+        .eq("id", lessonId)
+        .single();
+
+      if (error) {
+        console.error(error.code || error.name);
+        setTitle("Lesson");
+        setContent([]);
+        setError("query");
+        return;
+      }
+
+      if (!data) {
+        setTitle("Lesson");
+        setContent([]);
+        setError("missing");
+        return;
+      }
+
+      setTitle(data.title);
+      const blocks = Array.isArray(data.lesson_blocks) ? data.lesson_blocks : [];
+      setContent(
+        blocks
+          .map((b: any) => (typeof b?.content === "string" ? b.content : b?.text))
+          .filter(Boolean)
+      );
+    } catch (err: any) {
+      console.error(err?.code || err?.name);
+      setTitle("Lesson");
+      setContent([]);
+      setError("query");
     } finally {
       setLoading(false);
     }
   }
 
-  async function markComplete() {
-    setSaving(true);
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user && lessonId) {
-        await supabase.from("progress").upsert(
-          {
-            user_id: user.id,
-            lesson_id: lessonId,
-            completed: true,
-          },
-          { onConflict: "user_id,lesson_id" },
-        );
-      }
-    } catch {
-      // Progress table may not accept this id — still advance locally
-    } finally {
-      setSaving(false);
-      setCompleted(true);
-      Alert.alert(
-        "Nice work!",
-        "Lesson marked as complete. Moving to the next topic…",
-        [
-          {
-            text: "Back to roadmap",
-            onPress: () => router.replace("/(tabs)/roadmap"),
-          },
-        ],
-      );
-    }
-  }
+
 
   return (
     <View style={styles.container}>
@@ -119,6 +93,15 @@ export default function LessonScreen() {
           color={colors.teal}
           style={{ marginTop: 40 }}
         />
+      ) : error ? (
+        <View style={styles.content}>
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>This lesson isn&apos;t available.</Text>
+            <TouchableOpacity style={styles.backLink} onPress={() => router.back()}>
+              <Text style={styles.backLinkText}>Go back</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       ) : (
         <ScrollView
           contentContainerStyle={styles.content}
@@ -144,9 +127,7 @@ export default function LessonScreen() {
             <View style={[styles.progressFill, { width: `${progress}%` }]} />
           </View>
           <Text style={styles.progressLabel}>
-            {progress >= 90
-              ? "You can complete this lesson now"
-              : `${progress}% read · keep scrolling`}
+            {progress >= 90 ? "You can complete this lesson now" : `${progress}% read · keep scrolling`}
           </Text>
 
           {content.map((para, i) => (
@@ -154,28 +135,6 @@ export default function LessonScreen() {
               {para}
             </Text>
           ))}
-
-          <TouchableOpacity
-            style={[styles.completeBtn, completed && styles.completeBtnDone]}
-            onPress={markComplete}
-            disabled={saving || completed}
-          >
-            {saving ? (
-              <ActivityIndicator color="#fff" />
-            ) : completed ? (
-              <>
-                <Check size={16} color="#fff" />
-                <Text style={styles.completeText}>Completed</Text>
-              </>
-            ) : (
-              <>
-                <Text style={styles.completeText}>
-                  Mark complete & continue
-                </Text>
-                <ChevronRight size={16} color="#fff" />
-              </>
-            )}
-          </TouchableOpacity>
         </ScrollView>
       )}
     </View>
@@ -218,6 +177,22 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     marginTop: 8,
   },
-  completeBtnDone: { backgroundColor: colors.inkSoft },
-  completeText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  errorBox: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  errorText: { fontSize: 16, fontWeight: '700', color: colors.ink, textAlign: 'center' },
+  backLink: {
+    marginTop: 18,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    alignItems: 'center',
+  },
+  backLinkText: { fontSize: 14, fontWeight: '700', color: colors.tealDark },
 });
