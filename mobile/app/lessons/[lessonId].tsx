@@ -127,7 +127,7 @@ export default function LessonScreen() {
             <View style={[styles.progressFill, { width: `${progress}%` }]} />
           </View>
           <Text style={styles.progressLabel}>
-            {progress >= 90 ? "You can complete this lesson now" : `${progress}% read · keep scrolling`}
+            {progress >= 90 ? "You've reached the end of this lesson" : `${progress}% read · keep scrolling`}
           </Text>
 
           {content.map((para, i) => (
