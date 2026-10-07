@@ -35,8 +35,20 @@ type ModuleRow = {
 };
 type ToggleResult = {
   xp_awarded?: number;
-  new_badges?: string[] | string | null;
+  new_badges?: unknown[] | string | null;
 } | null;
+
+function badgeLabel(b: unknown): string {
+  if (typeof b === "string") return b;
+  if (b && typeof b === "object") {
+    const o = b as Record<string, unknown>;
+    for (const key of ["name", "title", "label", "badge_key", "key", "id"]) {
+      const v = o[key];
+      if (typeof v === "string" && v) return v;
+    }
+  }
+  return "Badge";
+}
 
 export default function MobileRoadmapScreen() {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -51,11 +63,14 @@ export default function MobileRoadmapScreen() {
   const cancelledRef = useRef(false);
 
   const loadData = useCallback(async () => {
+    const myCounter = ++loadCounter.current;
     setLoading(!hasLoadedOnce.current);
     setLoadError(null);
     try {
       const subs = await listSubjects();
+      if (myCounter !== loadCounter.current) return;
       const activeSub = await getActiveSubject();
+      if (myCounter !== loadCounter.current) return;
       const selectedSubject = activeSub || subs[0] || null;
 
       const { data: moduleRows, error: modulesError } = selectedSubject
@@ -68,6 +83,7 @@ export default function MobileRoadmapScreen() {
             .order("order_index", { ascending: true })
         : { data: [], error: null };
       if (modulesError) throw modulesError;
+      if (myCounter !== loadCounter.current) return;
 
       if (cancelledRef.current) return;
       setSubject(selectedSubject);
@@ -82,9 +98,9 @@ export default function MobileRoadmapScreen() {
       hasLoadedOnce.current = true;
     } catch (error) {
       if (cancelledRef.current) return;
-      setLoadError(reportError("roadmap", error));
+      if (myCounter === loadCounter.current) setLoadError(reportError("roadmap", error));
     } finally {
-      if (!cancelledRef.current) setLoading(false);
+      if (!cancelledRef.current && myCounter === loadCounter.current) setLoading(false);
     }
     // reloadTick changes the callback identity so a Retry re-runs the load.
   }, [reloadTick]);
@@ -99,8 +115,13 @@ export default function MobileRoadmapScreen() {
     }, [loadData]),
   );
 
+  const loadCounter = useRef(0);
+  const checked = useRef<Set<string>>(new Set());
+
   async function handleToggleTopic(topic: TopicRow) {
     if (busyTopicIds.has(topic.id)) return;
+    if (checked.current.has(topic.id)) return;
+    checked.current.add(topic.id);
     setBusyTopicIds((prev) => new Set(prev).add(topic.id));
     try {
       const { data, error } = await supabase.rpc("toggle_topic_completion", {
@@ -115,11 +136,12 @@ export default function MobileRoadmapScreen() {
         ? ((data[0] as ToggleResult) ?? null)
         : ((data as ToggleResult) ?? null);
       const xp = result?.xp_awarded ?? 0;
-      const badges = Array.isArray(result?.new_badges)
-        ? result!.new_badges!
-        : result?.new_badges
-          ? [String(result.new_badges)]
-          : [];
+      const badges =
+        Array.isArray(result?.new_badges)
+          ? result.new_badges.map(badgeLabel)
+          : result?.new_badges
+            ? [badgeLabel(result.new_badges)]
+            : [];
       if (xp > 0 || badges.length > 0) {
         Alert.alert(
           xp > 0 ? `+${xp} XP` : "Badge earned!",
@@ -127,11 +149,9 @@ export default function MobileRoadmapScreen() {
         );
       }
     } catch (error) {
-      console.log("[roadmap] toggle failed", {
-        code: (error as { code?: string }).code,
-      });
       Alert.alert("Couldn't update topic", reportError("roadmap", error));
     } finally {
+      checked.current.clear();
       setBusyTopicIds((prev) => {
         const next = new Set(prev);
         next.delete(topic.id);
