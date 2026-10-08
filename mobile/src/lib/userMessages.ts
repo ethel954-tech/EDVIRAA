@@ -8,7 +8,7 @@
  */
 
 /** Contexts that call AI edge functions — their 429 is the daily AI quota. */
-const AI_CONTEXTS = ["tutor", "process-document", "backfill-summary"];
+const AI_CONTEXTS = ["tutor", "process-document", "backfill-summary", "generate-roadmap"];
 
 /**
  * Server messages that are already written for users. Sources — the exact

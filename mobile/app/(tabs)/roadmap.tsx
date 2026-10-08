@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useState } from "react";
+import { useRouter } from "expo-router";
 import {
   View,
   Text,
@@ -51,11 +52,13 @@ function badgeLabel(b: unknown): string {
 }
 
 export default function MobileRoadmapScreen() {
+  const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [subject, setSubject] = useState<Subject | null>(null);
   const [modules, setModules] = useState<ModuleRow[]>([]);
+  const [hasDocuments, setHasDocuments] = useState<boolean | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [reloadTick, setReloadTick] = useState(0);
   const [busyTopicIds, setBusyTopicIds] = useState<Set<string>>(new Set());
@@ -95,6 +98,27 @@ export default function MobileRoadmapScreen() {
           ),
         })),
       );
+      if (selectedSubject && (moduleRows ?? []).length === 0) {
+        const { data: { user: roadmapUser } } = await supabase.auth.getUser();
+        if (roadmapUser && myCounter === loadCounter.current) {
+          try {
+            const {
+              count: readyCount,
+            } = await supabase
+              .from("documents")
+              .select("id", { count: "exact", head: true })
+              .eq("student_id", roadmapUser.id)
+              .eq("subject_id", selectedSubject.id)
+              .eq("status", "ready");
+            if (myCounter === loadCounter.current) {
+              setHasDocuments(Boolean(readyCount ?? 0));
+            }
+          } catch {
+            // Treat a documents query failure as unknown; keep the normal
+            // error path as the fallback UX.
+          }
+        }
+      }
       hasLoadedOnce.current = true;
     } catch (error) {
       if (cancelledRef.current) return;
@@ -218,10 +242,25 @@ export default function MobileRoadmapScreen() {
           <View style={styles.card}>
             <View style={styles.emptyState}>
               <Map size={32} color={colors.inkSoft} />
-              <Text style={styles.emptyText}>
-                Your roadmap isn't generated yet. You can generate it on the
-                Edvira web app for now.
-              </Text>
+              {hasDocuments === false ? (
+                <>
+                  <Text style={styles.emptyText}>
+                    Upload a PDF in Documents first, then build your roadmap.
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.retryButton}
+                    onPress={() => router.push("/(tabs)/documents")}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.retryButtonText}>Go to Documents</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <Text style={styles.emptyText}>
+                  Your roadmap isn't generated yet. You can generate it on the
+                  Edvira web app for now.
+                </Text>
+              )}
             </View>
           </View>
         ) : (
