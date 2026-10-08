@@ -63,6 +63,11 @@ export default function MobileRoadmapScreen() {
   const [busyTopicIds, setBusyTopicIds] = useState<Set<string>>(new Set());
   const hasLoadedOnce = useRef(false);
   const cancelledRef = useRef(false);
+  // Incremented on every load so an older, slower load never overwrites newer data.
+  const loadCounter = useRef(0);
+  // Topics with a toggle call in progress. A ref, so it blocks a double tap
+  // within the same frame (state would not have updated yet).
+  const inFlight = useRef<Set<string>>(new Set());
 
   const loadData = useCallback(async () => {
     const myCounter = ++loadCounter.current;
@@ -97,6 +102,10 @@ export default function MobileRoadmapScreen() {
           ),
         })),
       );
+
+      // With no roadmap yet, find out whether the subject has any ready
+      // documents. A failed check must reach the error card (with Retry);
+      // it must never be read as "no documents".
       if (selectedSubject && (moduleRows ?? []).length === 0) {
         const {
           data: { user: roadmapUser },
@@ -113,14 +122,17 @@ export default function MobileRoadmapScreen() {
         if (myCounter !== loadCounter.current) return;
         setHasDocuments(Boolean(readyCount ?? 0));
       }
+
       hasLoadedOnce.current = true;
     } catch (error) {
       if (cancelledRef.current) return;
-      if (myCounter === loadCounter.current)
+      if (myCounter === loadCounter.current) {
         setLoadError(reportError("roadmap", error));
+      }
     } finally {
-      if (!cancelledRef.current && myCounter === loadCounter.current)
+      if (!cancelledRef.current && myCounter === loadCounter.current) {
         setLoading(false);
+      }
     }
     // reloadTick changes the callback identity so a Retry re-runs the load.
   }, [reloadTick]);
@@ -135,13 +147,9 @@ export default function MobileRoadmapScreen() {
     }, [loadData]),
   );
 
-  const loadCounter = useRef(0);
-  const checked = useRef<Set<string>>(new Set());
-
   async function handleToggleTopic(topic: TopicRow) {
-    if (busyTopicIds.has(topic.id)) return;
-    if (checked.current.has(topic.id)) return;
-    checked.current.add(topic.id);
+    if (inFlight.current.has(topic.id)) return;
+    inFlight.current.add(topic.id);
     setBusyTopicIds((prev) => new Set(prev).add(topic.id));
     try {
       const { data, error } = await supabase.rpc("toggle_topic_completion", {
@@ -170,7 +178,7 @@ export default function MobileRoadmapScreen() {
     } catch (error) {
       Alert.alert("Couldn't update topic", reportError("roadmap", error));
     } finally {
-      checked.current.clear();
+      inFlight.current.delete(topic.id);
       setBusyTopicIds((prev) => {
         const next = new Set(prev);
         next.delete(topic.id);
