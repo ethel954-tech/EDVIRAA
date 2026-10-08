@@ -1,5 +1,4 @@
 import React, { useCallback, useRef, useState } from "react";
-import { useRouter } from "expo-router";
 import {
   View,
   Text,
@@ -9,7 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { supabase } from "../../src/lib/supabase";
 import { reportError } from "../../src/lib/userMessages";
 import {
@@ -99,32 +98,29 @@ export default function MobileRoadmapScreen() {
         })),
       );
       if (selectedSubject && (moduleRows ?? []).length === 0) {
-        const { data: { user: roadmapUser } } = await supabase.auth.getUser();
-        if (roadmapUser && myCounter === loadCounter.current) {
-          try {
-            const {
-              count: readyCount,
-            } = await supabase
-              .from("documents")
-              .select("id", { count: "exact", head: true })
-              .eq("student_id", roadmapUser.id)
-              .eq("subject_id", selectedSubject.id)
-              .eq("status", "ready");
-            if (myCounter === loadCounter.current) {
-              setHasDocuments(Boolean(readyCount ?? 0));
-            }
-          } catch {
-            // Treat a documents query failure as unknown; keep the normal
-            // error path as the fallback UX.
-          }
-        }
+        const {
+          data: { user: roadmapUser },
+        } = await supabase.auth.getUser();
+        if (myCounter !== loadCounter.current) return;
+        if (!roadmapUser) throw new Error("no-user");
+        const { count: readyCount, error: docsError } = await supabase
+          .from("documents")
+          .select("id", { count: "exact", head: true })
+          .eq("student_id", roadmapUser.id)
+          .eq("subject_id", selectedSubject.id)
+          .eq("status", "ready");
+        if (docsError) throw docsError;
+        if (myCounter !== loadCounter.current) return;
+        setHasDocuments(Boolean(readyCount ?? 0));
       }
       hasLoadedOnce.current = true;
     } catch (error) {
       if (cancelledRef.current) return;
-      if (myCounter === loadCounter.current) setLoadError(reportError("roadmap", error));
+      if (myCounter === loadCounter.current)
+        setLoadError(reportError("roadmap", error));
     } finally {
-      if (!cancelledRef.current && myCounter === loadCounter.current) setLoading(false);
+      if (!cancelledRef.current && myCounter === loadCounter.current)
+        setLoading(false);
     }
     // reloadTick changes the callback identity so a Retry re-runs the load.
   }, [reloadTick]);
@@ -160,12 +156,11 @@ export default function MobileRoadmapScreen() {
         ? ((data[0] as ToggleResult) ?? null)
         : ((data as ToggleResult) ?? null);
       const xp = result?.xp_awarded ?? 0;
-      const badges =
-        Array.isArray(result?.new_badges)
-          ? result.new_badges.map(badgeLabel)
-          : result?.new_badges
-            ? [badgeLabel(result.new_badges)]
-            : [];
+      const badges = Array.isArray(result?.new_badges)
+        ? result.new_badges.map(badgeLabel)
+        : result?.new_badges
+          ? [badgeLabel(result.new_badges)]
+          : [];
       if (xp > 0 || badges.length > 0) {
         Alert.alert(
           xp > 0 ? `+${xp} XP` : "Badge earned!",
